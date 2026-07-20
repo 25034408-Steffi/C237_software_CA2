@@ -4,11 +4,11 @@
 -- -----------------------------------------------------
 -- ADMIN
 INSERT INTO `c237_026_team3_ca2`.`user` (`user_id`, `name`, `email`, `password`, `role`, `points`) VALUES
-(1, 'admin', 'admin@gmail.com', 'admin123', 'admin', NULL);
+(1, 'admin', 'admin@gmail.com', 'f865b53623b121fd34ee5426c792e5c33af8c227', 'admin', NULL);
 -- REGULAR USERS
 INSERT INTO `c237_026_team3_ca2`.`user` (`user_id`, `name`, `email`, `password`, `role`, `points`) VALUES
-(2, 'John Tan', 'john@gmail.com', 'johnpassword', 'customer', 0),
-(3, 'Mary Lim', 'mary@gmail.com', 'marypassword', 'customer', 0);
+(2, 'John Tan', 'john@gmail.com', 'e9c1240161604e16a32ded612ba0c91b9b751fe0', 'customer', 0),
+(3, 'Mary Lim', 'mary@gmail.com', '95f2790dac9edcf83af260413fd927392eef4c18', 'customer', 0);
 
 
 
