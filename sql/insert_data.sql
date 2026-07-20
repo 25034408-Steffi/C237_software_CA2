@@ -108,28 +108,6 @@ INSERT INTO `c237_026_team3_ca2`.`menu_item_has_add_on` (`menu_item_id`, `add_on
 (23, 1), (23, 2), (23, 3), (23, 4), (23, 5);  -- Prosciutto
 
 
--- -----------------------------------------------------
--- Order 1: John Tan
--- 2x Laksa ($14) = 28
--- 1x Hawaiian Pizza, Regular ($17) = 17
--- 3x Garlic Nan ($10) = 30
--- + add-ons on the pizza: Anchovies (2) + Olives (2) = 4
--- Total = 79
--- -----------------------------------------------------
-INSERT INTO `c237_026_team3_ca2`.`order` (`order_id`, `user_id`, `total`, `points_earned`, `points_redeemed`, `discount_amount`) VALUES
-(1, 2, 79.00, 79, NULL, NULL);
-
-INSERT INTO `c237_026_team3_ca2`.`order_item` (`order_item_id`, `order_id`, `menu_item_id`, `size_id`, `quantity`) VALUES
-(1, 1, 3, NULL, 2),   -- Laksa x2
-(2, 1, 19, 2, 1),     -- Hawaiian Pizza, Regular x1
-(3, 1, 7, NULL, 3);   -- Garlic Nan x3
-
-INSERT INTO `c237_026_team3_ca2`.`order_item_has_add_on` (`order_item_id`, `add_on_id`) VALUES
-(2, 1),  -- Anchovies on the Hawaiian Pizza
-(2, 3);  -- Olives on the Hawaiian Pizza
-
-
-
 -- SAMPLE ORDERS
 
 -- -----------------------------------------------------
