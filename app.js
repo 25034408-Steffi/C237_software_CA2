@@ -38,8 +38,6 @@ app.use(express.static('public'));
 app.use(flash());
 app.set('view engine', 'ejs');
 
-
-
 app.get('/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/');
