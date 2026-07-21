@@ -1,0 +1,15 @@
+
+.nav.nav-underline .nav-link {
+    padding: 0.5rem 0.5rem;
+}
+
+.nav-link:hover {
+    background-color: rgb(190, 190, 190);
+    color: black;
+}
+.nav-item > a {
+    color:grey
+}
+.nav-link.active{
+    font-weight: 400 !important; 
+} 

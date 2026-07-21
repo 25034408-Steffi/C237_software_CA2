@@ -1,30 +1,11 @@
 const express = require('express');
-const mysql = require('mysql2');
 
 const session = require('express-session');
 const flash = require('connect-flash');
 
 const app = express();
-
-
-// Database connection
-const db = mysql.createConnection({
-    host: 'c237-adib-mysql.mysql.database.azure.com',
-    user: 'c237_026',
-    password: 'c237026@2026!',
-    database: 'c237_026_team3_ca2',
-    ssl: {
-        rejectUnauthorized: false
-    }
-});
-
-db.connect((err) => {
-    if (err) {
-        throw err;
-    }
-    console.log('Connected to database');
-});
-
+const db = require('./database')
+const { getFoodCategoryCount } = require("./models/foodModel");
 app.use(session({
     secret: 'notsasecret',
     resave: false,
@@ -46,8 +27,8 @@ const validateRegistration = (req, res, next) => {
     }
     if (password.length < 6) {
         req.flash('error', 'Password should be at least 6 or more characters long');
-        req.flash('formData', req.body);
-        return res.redirect('/register');
+        req.flash('formData', req.body); 
+        return res.redirect('/register'); // redirect to register with previous filled in formData if it fails
     }
     //If all validations pass, the next function is called, allowing the request to proceed to the
     //next middleware function or route handler.
@@ -120,7 +101,7 @@ app.post('/login', (req, res) => {
             // Successful login
             req.session.user = results[0]; // store user in session
             req.flash('success', 'Login successful!');
-            res.redirect('/');  // have to add stuff here to redirect when successful
+            res.redirect('/menu');  // have to add stuff here to redirect when successful
         } else {
             // Invalid credentials
             req.flash('error', 'Invalid email or password.');
@@ -128,6 +109,22 @@ app.post('/login', (req, res) => {
         }
     });
 });
+
+app.get('/menu', (req, res) =>{
+    res.redirect('/menu/Asian')
+    }
+)
+
+// dedault page is asian so /menu redirects to it
+app.get('/menu/:category', checkAuthenticated, (req, res) => {
+    const activeCategory = req.params.category;
+    getFoodCategoryCount((err, results) => {
+        if (err) {
+            throw err;
+        }
+        res.render('menu', {user: req.session.user, counts: results, activeCategory});
+    })
+})
 
 app.get('/logout', (req, res) => {
     req.session.destroy();
