@@ -123,7 +123,7 @@ app.get('/menu', (req, res) =>{
     }
 )
 
-// dedault page is asian so /menu redirects to it
+// default page is asian so /menu redirects to it
 app.get('/menu/:category', checkAuthenticated, (req, res) => {
     const activeCategory = req.params.category;
     getFoodCategoryCount((err, results) => {
