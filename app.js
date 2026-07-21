@@ -20,10 +20,13 @@ app.use(flash());
 app.set('view engine', 'ejs');
 
 const validateRegistration = (req, res, next) => {
-    const { username, email, password } = req.body;
+    const { name, telephoneNo, password } = req.body;
 
-    if (!username || !email || !password ) {
-        return res.send('All fields are required.');
+    if (!name || !telephoneNo || !password ) {
+        req.flash('error', 'All fields are required.');
+        req.flash('formData', req.body)
+        return res.redirect('/register')
+
     }
     if (password.length < 6) {
         req.flash('error', 'Password should be at least 6 or more characters long');
@@ -49,7 +52,7 @@ const checkAdmin = (req, res, next) => {
         return next();
     } else {
         req.flash('error', 'Access denied');
-        res.redirect('/dashboard');
+        res.redirect('/');
     }
 };
 
@@ -57,27 +60,31 @@ app.get('/', (req, res) => {
     res.render('index', { user: req.session.user, messages: req.flash('success')});
 });
 
+// register routes
 app.get('/register', (req, res) => {
     res.render('registerUser', { messages: req.flash('error'), formData: req.flash('formData')[0] });
 });
 
 
 app.post('/register', validateRegistration, (req, res) => {
-    const { username, email, password } = req.body;
+    const { password } = req.body;
+    const name = req.body.name.trim();
+    const telephoneNo = req.body.telephoneNo.trim();
 
-    const sql = 'INSERT INTO user (username, email, password) VALUES (?, ?, SHA1(?))';
-    db.query(sql, [username, email, password], (err, result) => {
+    const card_id = `${name[0].toUpperCase()}0${telephoneNo.substring(0, 3)}00`
+    
+    const sql = 'INSERT INTO user (name, card_id, phone_number, password, points, role) VALUES (?, ?, ?, SHA1(?), ?, ?)';
+    db.query(sql, [name, card_id, telephoneNo , password, 0, 'customer'], (err, result) => {
         if (err) {
             throw err;
         }
         console.log(result);
-        req.flash('success', 'Registration successful! Please log in.');
+        req.flash('success', `Registration successful! Your card ID is ${card_id}`);
         res.redirect('/login');
     });
 });
 
-
-
+// login routes
 app.get('/login', (req, res) => {
     res.render('login', {
         messages: req.flash('success'),
@@ -86,21 +93,21 @@ app.get('/login', (req, res) => {
 })
 
 app.post('/login', (req, res) => {
-    const { email, password } = req.body;
+    const {password } = req.body;
+    const card_id = req.body.card_id.trim();
     // Validate email and password
-    if (!email || !password) {
+    if (!card_id || !password) {
         req.flash('error', 'All fields are required.');
         return res.redirect('/login');
     }
-    const sql = 'SELECT * FROM user WHERE email = ? AND password = SHA1(?)';
-    db.query(sql, [email, password], (err, results) => {
+    const sql = 'SELECT * FROM user WHERE card_id = ? AND password = SHA1(?)';
+    db.query(sql, [card_id, password], (err, results) => {
         if (err) {
             throw err;
         }
         if (results.length > 0) {
             // Successful login
             req.session.user = results[0]; // store user in session
-            req.flash('success', 'Login successful!');
             res.redirect('/menu');  // have to add stuff here to redirect when successful
         } else {
             // Invalid credentials
@@ -110,8 +117,9 @@ app.post('/login', (req, res) => {
     });
 });
 
+// menu routes
 app.get('/menu', (req, res) =>{
-    res.redirect('/menu/Asian')
+    res.redirect('/menu/Asian');
     }
 )
 

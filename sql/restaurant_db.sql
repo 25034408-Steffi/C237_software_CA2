@@ -14,15 +14,39 @@ USE `c237_026_team3_ca2` ;
 -- -----------------------------------------------------
 -- Table `c237_026_team3_ca2`.`user`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `c237_026_team3_ca2`.`user` (
+CREATE TABLE IF NOT EXISTS `user` (
   `user_id` INT NOT NULL AUTO_INCREMENT,
+  `card_id` VARCHAR(20) NOT NULL,
   `name` VARCHAR(100) NOT NULL,
-  `email` VARCHAR(255) NOT NULL,
-  `password` VARCHAR(255) NOT NULL,
+  `phone_number` VARCHAR(15) NOT NULL,
+  `password` VARCHAR(255) NULL,
   `role` ENUM('admin', 'customer') NOT NULL,
   `points` INT NULL,
-  PRIMARY KEY (`user_id`))
-ENGINE = InnoDB;
+  `primary_user_id` INT NULL,
+  `relationship_type_id` INT NULL,
+  PRIMARY KEY (`user_id`),
+  UNIQUE KEY `uq_card_id` (`card_id`),
+  CONSTRAINT `fk_user_primary_user`
+    FOREIGN KEY (`primary_user_id`)
+    REFERENCES `user` (`user_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_user_relationship_type`
+    FOREIGN KEY (`relationship_type_id`)
+    REFERENCES `relationship_type` (`relationship_type_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Table `c237_026_team3_ca2`.`relationship_type`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `relationship_type` (
+  `relationship_type_id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(50) NOT NULL,
+  PRIMARY KEY (`relationship_type_id`),
+  UNIQUE KEY `uq_relationship_name` (`name`)
+) ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------

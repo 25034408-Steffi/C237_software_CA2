@@ -1,15 +1,26 @@
+-- -----------------------------------------------------
+-- Relationship Type
+-- -----------------------------------------------------
 
+INSERT INTO `relationship_type` (`relationship_type_id`, `name`) VALUES
+(1, 'spouse'),
+(2, 'child'),
+(3, 'grandparent');
 -- -----------------------------------------------------
 -- Users
 -- -----------------------------------------------------
--- ADMIN
-INSERT INTO `c237_026_team3_ca2`.`user` (`user_id`, `name`, `email`, `password`, `role`, `points`) VALUES
-(1, 'admin', 'admin@gmail.com', 'f865b53623b121fd34ee5426c792e5c33af8c227', 'admin', NULL);
--- REGULAR USERS
-INSERT INTO `c237_026_team3_ca2`.`user` (`user_id`, `name`, `email`, `password`, `role`, `points`) VALUES
-(2, 'John Tan', 'john@gmail.com', 'e9c1240161604e16a32ded612ba0c91b9b751fe0', 'customer', 0),
-(3, 'Mary Lim', 'mary@gmail.com', '95f2790dac9edcf83af260413fd927392eef4c18', 'customer', 0);
+-- ADMIN (account owner, no family)
+INSERT INTO `c237_026_team3_ca2`.`user` (`user_id`, `card_id`, `name`, `phone_number`, `password`, `role`, `points`, `primary_user_id`) VALUES
+(1, 'A012345', 'admin', '42069123', 'f865b53623b121fd34ee5426c792e5c33af8c227', 'admin', NULL, NULL); -- admin123
 
+-- REGULAR USERS (both account owners)
+INSERT INTO `c237_026_team3_ca2`.`user` (`user_id`, `card_id`, `name`, `phone_number`, `password`, `role`, `points`, `primary_user_id`, `relationship_type_id`) VALUES
+(2, 'J091200', 'John Tan', '91234567', 'e9c1240161604e16a32ded612ba0c91b9b751fe0', 'customer', 0, NULL, NULL), -- johnpassword
+(3, 'M098700', 'Mary Lim', '98765432', '95f2790dac9edcf83af260413fd927392eef4c18', 'customer', 0, NULL, NULL); -- marypassword
+
+-- FAMILY MEMBER (Lily, under John's account)
+INSERT INTO `c237_026_team3_ca2`.`user` (`user_id`, `card_id`, `name`, `phone_number`, `password`, `role`, `points`, `primary_user_id`, `relationship_type_id`) VALUES
+(4, 'J091201', 'Lily Tan', '12345678', 'd98cb42bb148541314ea1911af3c28a1fa4a6233', 'customer', 0, 2, 1); -- lilypassword
 
 
 -- -----------------------------------------------------
