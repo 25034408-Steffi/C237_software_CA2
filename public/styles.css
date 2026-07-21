@@ -35,5 +35,21 @@ form .login-text, .register-text {
 }
 
 .login h1, .register h1 {
-    font-size: 30px
+    font-size: 30px;
+}
+
+.food-card {
+    border-radius: 10px;
+}
+
+.menu-text {
+    font-size: 16px;
+}
+
+h1.menu-text {
+    font-weight: bold;
+}
+
+.food-container {
+    border: 0.5px solid grey;
 }

@@ -5,7 +5,7 @@ const flash = require('connect-flash');
 
 const app = express();
 const db = require('./database')
-const { getFoodCategoryCount } = require("./models/foodModel");
+const { getFoodCategoryCount, getFoodByCategory } = require("./models/foodModel");
 app.use(session({
     secret: 'notsasecret',
     resave: false,
@@ -126,11 +126,21 @@ app.get('/menu', (req, res) =>{
 // default page is asian so /menu redirects to it
 app.get('/menu/:category', checkAuthenticated, (req, res) => {
     const activeCategory = req.params.category;
-    getFoodCategoryCount((err, results) => {
+    getFoodCategoryCount((err, categoryCount) => {
         if (err) {
             throw err;
         }
-        res.render('menu', {user: req.session.user, counts: results, activeCategory});
+
+        getFoodByCategory(activeCategory, (err, menuItems) => {
+            if (err) {
+                throw err;
+            }
+            res.render('menu', {
+                user: req.session.user, 
+                counts: categoryCount, 
+                activeCategory,
+                menuItems});
+        })
     })
 })
 
