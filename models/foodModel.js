@@ -1,4 +1,4 @@
-const db = require('../database')
+const db = require('../database');
 
 
 function getFoodCategoryCount(callback) {
@@ -10,9 +10,9 @@ function getFoodCategoryCount(callback) {
 
     db.query(sql, (err, results) => {
         if (err) {
-            return callback(err)
+            return callback(err);
         }
-        callback(null, results)
+        callback(null, results);
     })
 }
 
@@ -25,9 +25,9 @@ function getFoodByCategory(category, callback){
 
     db.query(sql, [category], (err, results) => {
         if (err) {
-            return callback(err)
+            return callback(err);
         }
-        callback(null, results)
+        callback(null, results);
     })
 }
 
