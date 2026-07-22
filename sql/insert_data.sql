@@ -11,7 +11,7 @@ INSERT INTO `relationship_type` (`relationship_type_id`, `name`) VALUES
 -- -----------------------------------------------------
 -- ADMIN (account owner, no family)
 INSERT INTO `c237_026_team3_ca2`.`user` (`user_id`, `card_id`, `name`, `phone_number`, `password`, `role`, `points`, `primary_user_id`) VALUES
-(1, 'A012345', 'admin', '42069123', 'f865b53623b121fd34ee5426c792e5c33af8c227', 'admin', NULL, NULL); -- admin123
+(1, 'ADMIN', 'Leon', '83366519', 'd29dfb12b4e550a23eb9938698b10ab27f6dfe5d', 'admin', NULL, NULL); -- logs in with name 'Leon', password L123456
 
 -- REGULAR USERS (both account owners)
 INSERT INTO `c237_026_team3_ca2`.`user` (`user_id`, `card_id`, `name`, `phone_number`, `password`, `role`, `points`, `primary_user_id`, `relationship_type_id`) VALUES

@@ -222,3 +222,30 @@ ENGINE = InnoDB;
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
+
+-- -----------------------------------------------------
+-- Admin features (order lifecycle, card tiers, reservations)
+-- -----------------------------------------------------
+ALTER TABLE `order` ADD COLUMN `status` ENUM('preparing','ready','received','finished') NOT NULL DEFAULT 'preparing';
+ALTER TABLE `order` ADD COLUMN `order_type` ENUM('online','in_restaurant') NOT NULL DEFAULT 'online';
+ALTER TABLE `order` ADD COLUMN `impatient` TINYINT NOT NULL DEFAULT 0;
+ALTER TABLE `order` ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE `user` ADD COLUMN `card_tier` ENUM('classic','gold','platinum') NOT NULL DEFAULT 'classic';
+
+-- order_item_id becomes AUTO_INCREMENT (drop/re-add the referencing FK)
+ALTER TABLE `order_item_has_add_on` DROP FOREIGN KEY `fk_order_item_has_add_on_order_item1`;
+ALTER TABLE `order_item` MODIFY `order_item_id` INT NOT NULL AUTO_INCREMENT;
+ALTER TABLE `order_item_has_add_on` ADD CONSTRAINT `fk_order_item_has_add_on_order_item1` FOREIGN KEY (`order_item_id`) REFERENCES `order_item` (`order_item_id`);
+
+CREATE TABLE IF NOT EXISTS `reservation` (
+  `reservation_id` INT NOT NULL AUTO_INCREMENT,
+  `user_id` INT NOT NULL,
+  `reserve_date` DATE NOT NULL,
+  `reserve_time` TIME NOT NULL,
+  `pax` INT NOT NULL,
+  `table_number` INT NULL,
+  `status` ENUM('pending','upcoming') NOT NULL DEFAULT 'pending',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`reservation_id`),
+  CONSTRAINT `fk_reservation_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`)
+) ENGINE = InnoDB;

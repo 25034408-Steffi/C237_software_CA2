@@ -1,0 +1,65 @@
+<%# Done by: Khaing Khant Zaw (Leon) - Add / Edit menu item with image upload %>
+<!DOCTYPE html>
+<html>
+<head>
+    <title><%= item ? 'Edit' : 'Add' %> Menu Item</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <%- include("partials/navbar") %>
+  <div class="container mt-4">
+    <%- include("partials/adminNav", { activeAdmin: 'menu' }) %>
+
+    <h1><%= item ? 'Edit Menu Item' : 'Add Menu Item' %></h1>
+
+    <% if (errors && errors.length > 0) { %>
+      <div class="alert alert-danger"><%= errors[0] %></div>
+    <% } %>
+
+    <form method="POST" enctype="multipart/form-data" class="col-lg-6"
+          action="<%= item ? '/admin/menu/edit/' + item.menu_item_id : '/admin/menu/add' %>">
+      <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input type="text" class="form-control" name="name" required value="<%= item ? item.name : '' %>">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Category</label>
+        <select class="form-select" name="category_id" required>
+          <% for (let i = 0; i < categories.length; i++) { %>
+            <option value="<%= categories[i].category_id %>"
+              <%= item && item.category_id === categories[i].category_id ? 'selected' : '' %>>
+              <%= categories[i].name %>
+            </option>
+          <% } %>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" name="description" rows="3" required><%= item ? item.description : '' %></textarea>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Price ($)</label>
+        <input type="number" class="form-control" name="price" step="0.01" min="0" required value="<%= item ? item.price : '' %>">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Photo</label>
+        <input type="file" class="form-control" name="image" accept="image/*">
+        <% if (item) { %>
+          <input type="hidden" name="currentImage" value="<%= item.image %>">
+          <div class="form-text">Current photo: <%= item.image %> (leave empty to keep it)</div>
+        <% } %>
+      </div>
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" name="available" id="available"
+          <%= !item || item.available ? 'checked' : '' %>>
+        <label class="form-check-label" for="available">Available (unticked = 86'd)</label>
+      </div>
+      <button type="submit" class="btn btn-primary"><%= item ? 'Save Changes' : 'Add Item' %></button>
+      <a href="/admin/menu" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+  </div>
+</body>
+</html>

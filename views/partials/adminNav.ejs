@@ -1,0 +1,22 @@
+<%# Done by: Khaing Khant Zaw (Leon) - Shared admin navigation between all admin features %>
+<%# quick links between every admin feature - active page is passed in as activeAdmin %>
+<ul class="nav nav-underline overflow-x-auto flex-nowrap justify-content-center mb-3">
+  <li class="nav-item">
+    <a class="nav-link <%= activeAdmin === 'dashboard' ? 'active' : '' %>" href="/admin"><i class="bi bi-speedometer2"></i> Dashboard</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link <%= activeAdmin === 'menu' ? 'active' : '' %>" href="/admin/menu"><i class="bi bi-card-list"></i> Manage Menu</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link <%= activeAdmin === '86' ? 'active' : '' %>" href="/admin/menu/86"><i class="bi bi-slash-circle"></i> 86 List</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link <%= activeAdmin === 'orders' ? 'active' : '' %>" href="/admin/orders"><i class="bi bi-receipt"></i> Orders</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link <%= activeAdmin === 'members' ? 'active' : '' %>" href="/admin/members"><i class="bi bi-people"></i> Members</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link <%= activeAdmin === 'reservations' ? 'active' : '' %>" href="/admin/reservations"><i class="bi bi-calendar-check"></i> Reservations</a>
+  </li>
+</ul>
