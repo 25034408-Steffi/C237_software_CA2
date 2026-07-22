@@ -109,7 +109,11 @@ app.post('/login', (req, res) => {
         req.flash('error', 'All fields are required.');
         return res.redirect('/login');
     }
-    const sql = 'SELECT * FROM user WHERE card_id = ? AND password = SHA1(?)';
+    const sql = `
+    SELECT user_id, card_id, name, role, points
+    FROM user
+    WHERE card_id = ? AND password = SHA1(?)`;
+
     db.query(sql, [card_id, password], (err, results) => {
         if (err) {
             throw err;
