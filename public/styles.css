@@ -1,45 +1,148 @@
-
-.nav.nav-underline .nav-link {
-    padding: 0.5rem 0.5rem;
+/* ============================================
+   Brand palette: burgundy / terracotta / amber
+   ============================================ */
+:root {
+  --burgundy: #6E1E36;
+  --burgundy-dark: #4A1424;
+  --burgundy-light: #8C2E48;
+  --terracotta: #C1502E;
+  --terracotta-dark: #A03F22;
+  --terracotta-light: #E58358;
+  --amber: #E8A33D;
+  --amber-light: #F4C878;
+  --cream: #FFF8F1;
+  --charcoal: #2B211D;
+  --grey-text: #7A6E68;
+  --card-shadow: 0 6px 18px rgba(74, 20, 36, 0.10);
+  --card-shadow-hover: 0 12px 28px rgba(74, 20, 36, 0.16);
 }
 
-.nav-link:hover {
-    background-color: rgb(190, 190, 190);
-    color: black;
-    border-radius: 0.2rem;
-}
-.nav-item > a {
-    color:grey
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--cream);
+  color: var(--charcoal);
 }
 
-#userMenu {
-    color: rgb(221, 218, 218);
-}
-.nav-link.active {
-    font-weight: 400 !important; 
-} 
-
-.container-lg .login, .register, .profile{
-    background-color: white;
-    border-radius: 0.6rem;
-    padding: 2.5rem;
-    box-shadow: 0px 5px 10px rgb(180, 189, 219)
+h1, h2, h3, h4, .navbar-brand, .brand-font {
+  font-family: 'Poppins', 'Inter', sans-serif;
 }
 
-form .login-text, .register-text {
-    font-size: 14px
+a {
+  color: var(--terracotta);
+}
+a:hover {
+  color: var(--terracotta-dark);
 }
 
-.login-text > a, .register-text > a {
-    text-decoration: none;
+/* ============ Buttons ============ */
+.btn-primary {
+  background-color: var(--terracotta);
+  border-color: var(--terracotta);
+  font-weight: 600;
+  border-radius: 0.7rem;
+  padding: 0.6rem 1.4rem;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--terracotta-dark);
+  border-color: var(--terracotta-dark);
+  transform: translateY(-1px);
+}
+.btn-primary:active {
+  transform: translateY(0);
 }
 
-.login-page-body, .register-page-body, .profile-page-body {
-    background-color: rgb(187, 216, 250);
+.btn-outline-light.btn-brand {
+  border-radius: 0.7rem;
+  font-weight: 600;
+  border-width: 2px;
 }
 
-.login h1, .register h1 {
-    font-size: 30px;
+.btn-amber {
+  background-color: var(--amber);
+  border-color: var(--amber);
+  color: var(--charcoal);
+  font-weight: 600;
+  border-radius: 0.7rem;
+}
+.btn-amber:hover {
+  background-color: #d9922f;
+  color: var(--charcoal);
+}
+
+/* ============ Navbar ============ */
+.navbar.brand-navbar {
+  background-color: var(--burgundy) !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+.navbar.brand-navbar .navbar-brand {
+  font-weight: 700;
+  font-size: 1.35rem;
+  letter-spacing: 0.3px;
+  color: #fff;
+}
+.navbar.brand-navbar .navbar-brand i {
+  color: var(--amber);
+  margin-right: 0.4rem;
+}
+.navbar.brand-navbar .nav-link {
+  color: rgba(255,255,255,0.85);
+  font-weight: 500;
+  margin: 0 0.15rem;
+  border-radius: 0.5rem;
+}
+.navbar.brand-navbar .nav-link:hover {
+  color: #fff;
+  background-color: rgba(255,255,255,0.1);
+}
+.navbar.brand-navbar .nav-link.active {
+  color: #fff;
+  font-weight: 700;
+  border-bottom: 2px solid var(--amber);
+}
+.navbar.brand-navbar .points-pill {
+  background-color: var(--amber);
+  color: var(--charcoal);
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+/* ============ Category pill nav (food nav) ============ */
+.food-nav-wrapper {
+  background-color: #fff;
+  border-bottom: 1px solid #f0e3d8;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-shadow: 0 2px 8px rgba(74,20,36,0.05);
+}
+.nav.nav-underline.category-pills {
+  padding: 0.75rem 1rem;
+  gap: 0.5rem;
+}
+.category-pills .nav-link {
+  color: var(--grey-text) !important;
+  background-color: var(--cream);
+  border-radius: 999px;
+  padding: 0.5rem 1.1rem !important;
+  font-weight: 600;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+.category-pills .nav-link:hover {
+  background-color: var(--amber-light);
+  color: var(--charcoal) !important;
+}
+.category-pills .nav-link.active {
+  background-color: var(--terracotta) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 3px 8px rgba(193,80,46,0.35);
 }
 
 /* profile */
@@ -68,17 +171,219 @@ form .login-text, .register-text {
 }
 /* food */
 .food-card {
-    border-radius: 10px;
+  border: none;
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+  background-color: #fff;
+}
+.food-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow-hover);
 }
 
 .menu-text {
-    font-size: 16px;
+  font-size: 16px;
 }
 
-h1.menu-text {
-    font-weight: bold;
+h1.menu-text.card-title {
+  font-weight: 700;
+  font-size: 1.15rem;
+  font-family: 'Poppins', sans-serif;
+  color: var(--charcoal);
+  margin-bottom: 0.25rem;
+}
+
+h2.menu-text {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--terracotta);
+  margin-bottom: 0.4rem;
+}
+
+p.menu-text.card-text {
+  color: var(--grey-text);
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+.card-img-right {
+  width: 110px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 12px;
+  flex-shrink: 0;
+  margin-left: 1rem;
+}
+
+/* ============ Sidebar / loyalty card ============ */
+.loyalty-card {
+  background: linear-gradient(160deg, var(--burgundy) 0%, var(--terracotta-dark) 100%);
+  border-radius: 16px;
+  padding: 1.75rem;
+  color: #fff;
+  box-shadow: var(--card-shadow);
+  height: 100%;
+}
+.loyalty-card .points-value {
+  font-family: 'Poppins', sans-serif;
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--amber-light);
+  line-height: 1;
+}
+.loyalty-card .points-label {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.loyalty-card hr {
+  border-color: rgba(255,255,255,0.2);
+}
+.loyalty-perk {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.6rem;
+  opacity: 0.95;
+}
+.loyalty-perk i {
+  color: var(--amber);
+}
+
+/* ============ Auth pages (login / register) ============ */
+.login-page-body, .register-page-body {
+  background: linear-gradient(135deg, var(--burgundy) 0%, var(--terracotta) 100%);
+  min-height: 100vh;
+}
+
+.container-lg .login, .container-lg .register {
+  background-color: #fff;
+  border-radius: 18px;
+  padding: 2.75rem;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+}
+
+.login h1, .register h1 {
+  font-size: 1.9rem;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  color: var(--burgundy);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.login .form-label, .register .form-label {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--charcoal);
+}
+
+.login .form-control, .register .form-control {
+  border-radius: 0.7rem;
+  padding: 0.65rem 0.9rem;
+  border: 1.5px solid #eee0d6;
+}
+.login .form-control:focus, .register .form-control:focus {
+  border-color: var(--terracotta);
+  box-shadow: 0 0 0 0.2rem rgba(193, 80, 46, 0.15);
+}
+
+form .login-text, form .register-text {
+  font-size: 14px;
+  color: var(--grey-text);
+}
+
+.login-text > a, .register-text > a {
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--terracotta);
+}
+
+/* ============ Home / hero ============ */
+.hero {
+  background: linear-gradient(135deg, var(--burgundy) 0%, var(--terracotta) 100%);
+  color: #fff;
+  padding: 5rem 1rem 6rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero h1 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 2.8rem;
+  margin-bottom: 1rem;
+}
+.hero p.lead {
+  font-size: 1.15rem;
+  opacity: 0.9;
+  max-width: 560px;
+  margin: 0 auto 2rem;
+}
+.hero .btn {
+  margin: 0.3rem;
+  min-width: 150px;
+}
+
+.feature-strip {
+  margin-top: -3rem;
+  position: relative;
+  z-index: 5;
+}
+.feature-card {
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  padding: 1.75rem 1.25rem;
+  text-align: center;
+  height: 100%;
+}
+.feature-card i {
+  font-size: 1.9rem;
+  color: var(--terracotta);
+  margin-bottom: 0.75rem;
+  display: inline-block;
+}
+.feature-card h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+.feature-card p {
+  color: var(--grey-text);
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+.welcome-banner {
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  padding: 2rem;
+  margin: 2.5rem auto;
+  max-width: 640px;
+  text-align: center;
+}
+.welcome-banner h2 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  color: var(--burgundy);
 }
 
 .food-container {
-    border: 0.5px solid grey;
+  border: 0.5px solid grey;
+}
+
+/* ============ Responsive tweaks ============ */
+@media (max-width: 991.98px) {
+  .food-card .card-body {
+    flex-direction: row;
+  }
+  .hero h1 {
+    font-size: 2.1rem;
+  }
 }
