@@ -30,7 +30,11 @@ INSERT INTO `c237_026_team5_ca2`.`category` (`category_id`, `name`) VALUES
 (1, 'Asian'),
 (2, 'Tandoori'),
 (3, 'Pasta'),
-(4, 'Pizza');
+(4, 'Pizza'),
+(5, 'Drinks'),
+(6, 'Dessert');
+
+
 
 -- -----------------------------------------------------
 -- Menu Items: Asian
@@ -79,6 +83,25 @@ INSERT INTO `c237_026_team5_ca2`.`menu_item`
 (21, 4, 'Margherita Pizza', 'margherita_pizza.jpg', 'Simple classic with tomato, mozzarella and fresh basil.', 13.00, 1),
 (22, 4, 'Salsiccia Pizza', 'salsiccia_pizza.jpg', 'Pizza topped with Italian sausage and mozzarella.', 19.00, 1),
 (23, 4, 'Prosciutto Pizza', 'prosciutto_pizza.jpg', 'Pizza topped with prosciutto, rocket and shaved parmesan.', 20.00, 1);
+
+
+-- -----------------------------------------------------
+-- Menu Items: Drinks
+-- -----------------------------------------------------
+INSERT INTO `c237_026_team5_ca2`.`menu_item`
+(`menu_item_id`, `category_id`, `name`, `image`, `description`, `price`, `available`) VALUES
+(24, 5, 'Iced Lemon Tea', 'iced_lemon_tea.jpg', 'Refreshing chilled black tea with a squeeze of fresh lemon.', 3.50, 1),
+(25, 5, 'Mango Smoothie', 'mango_smoothie.jpg', 'Creamy blended mango smoothie topped with fresh mint.', 5.50, 1),
+(26, 5, 'Coca-Cola', 'coca_cola.jpg', 'Classic chilled Coca-Cola served over ice.', 3.00, 1);
+
+-- -----------------------------------------------------
+-- Menu Items: Dessert
+-- -----------------------------------------------------
+INSERT INTO `c237_026_team5_ca2`.`menu_item`
+(`menu_item_id`, `category_id`, `name`, `image`, `description`, `price`, `available`) VALUES
+(27, 6, 'Tiramisu', 'tiramisu.jpg', 'Classic Italian dessert layered with mascarpone and espresso-soaked sponge.', 8.00, 1),
+(28, 6, 'Chocolate Lava Cake', 'chocolate_lava_cake.jpg', 'Warm chocolate cake with a molten centre, served with vanilla ice cream.', 9.00, 1),
+(29, 6, 'Cheesecake', 'cheesecake.jpg', 'Rich baked cheesecake with a buttery biscuit base.', 7.50, 1);
 
 -- -----------------------------------------------------
 -- Sizes (used for Pizza)
