@@ -145,7 +145,31 @@ a:hover {
   box-shadow: 0 3px 8px rgba(193,80,46,0.35);
 }
 
-/* ============ Food / menu cards ============ */
+/* profile */
+.profile-avatar {
+    font-size: 7rem;
+    color: rgb(70, 96, 163);
+}
+
+.profile-info-row {
+    display: flex;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgb(230, 233, 240);
+}
+
+.profile-info-row:last-child {
+    border-bottom: none;
+}
+
+.profile-label {
+    color: grey;
+}
+
+.profile-value {
+    font-weight: 500;
+    margin-left: 10px;
+}
+/* food */
 .food-card {
   border: none;
   border-radius: 16px;

@@ -6,6 +6,7 @@ const flash = require('connect-flash');
 const app = express();
 const db = require('./database')
 const { getFoodCategoryCount, getFoodByCategory } = require("./models/foodModel");
+const { getUserById, updateUser, getFamilyMembers, getRelationshipTypes, generateFamilyCardId, addFamilyMember, updateFamilyMember, deleteFamilyMember } = require("./models/userModel");
 app.use(session({
     secret: 'notsasecret',
     resave: false,
@@ -57,12 +58,19 @@ const checkAdmin = (req, res, next) => {
 };
 
 app.get('/', (req, res) => {
-    res.render('index', { user: req.session.user, messages: req.flash('success')});
+    res.render('index', {
+    user: req.session.user, 
+    messages: req.flash('success') 
+    });
 });
 
 // register routes
 app.get('/register', (req, res) => {
-    res.render('registerUser', { messages: req.flash('error'), formData: req.flash('formData')[0] });
+    res.render('registerUser', {
+    user: req.session.user,
+    messages: req.flash('error'), 
+    formData: req.flash('formData')[0]
+    });
 });
 
 
@@ -87,6 +95,7 @@ app.post('/register', validateRegistration, (req, res) => {
 // login routes
 app.get('/login', (req, res) => {
     res.render('login', {
+        user: req.session.user,
         messages: req.flash('success'),
         errors: req.flash('error')
     });
@@ -111,7 +120,7 @@ app.post('/login', (req, res) => {
             res.redirect('/menu');  // have to add stuff here to redirect when successful
         } else {
             // Invalid credentials
-            req.flash('error', 'Invalid email or password.');
+            req.flash('error', 'Invalid card ID or password.');
             res.redirect('/login');
         }
     });
@@ -144,6 +153,164 @@ app.get('/menu/:category', checkAuthenticated, (req, res) => {
     })
 })
 
+// profile route
+app.get('/profile', checkAuthenticated, (req, res) => {
+    getUserById(req.session.user.user_id, (err, userInfo) => {
+        if (err) {
+            throw err;
+        }
+
+        // primary_user_id NULL means this account IS the family owner (not a member under someone else)
+        const isFamilyOwner = userInfo.primary_user_id === null;
+
+        // any family member's card_id shares the same prefix, so we can search from our own
+        getFamilyMembers(userInfo.card_id, (err, familyMembers) => {
+            if (err) {
+                throw err;
+            }
+
+            const renderProfile = (relationshipTypes) => {
+                res.render('profile', {
+                    user: req.session.user,
+                    profileUser: userInfo,
+                    isFamilyOwner,
+                    familyMembers,
+                    relationshipTypes,
+                    messages: req.flash('success'),
+                    errors: req.flash('error')
+                });
+            };
+
+            // relationshipTypes only fills the "Add Family Member" dropdown, and only owners
+            // ever see that modal, so skip the extra query for non-owners
+            if (isFamilyOwner) {
+                getRelationshipTypes((err, relationshipTypes) => {
+                    if (err) {
+                        throw err;
+                    }
+                    renderProfile(relationshipTypes);
+                });
+            } else {
+                renderProfile([]);
+            }
+        });
+    });
+});
+
+// for user editing their own profile, card id and points cant be changed
+app.post('/profile', checkAuthenticated, (req, res) => {
+    const name = req.body.name.trim();
+    const phone_number = req.body.phone_number.trim();
+
+    if (!name || !phone_number) {
+        req.flash('error', 'Name and phone number are required.');
+        return res.redirect('/profile');
+    }
+
+    updateUser(req.session.user.user_id, { name, phone_number }, (err) => {
+        if (err) {
+            throw err;
+        }
+        req.session.user.name = name;
+        req.flash('success', 'Profile updated successfully.');
+        res.redirect('/profile');
+    });
+});
+
+// family management routes
+app.post('/profile/family/add', checkAuthenticated, (req, res) => {
+    getUserById(req.session.user.user_id, (err, userInfo) => {
+        if (err) {
+            throw err;
+        }
+
+        if (userInfo.primary_user_id !== null) {
+            req.flash('error', 'Only the family owner can add family members.');
+            return res.redirect('/profile');
+        }
+
+        const name = req.body.name.trim();
+        const phone_number = req.body.phone_number.trim();
+        const password = req.body.password;
+        const relationship_type_id = req.body.relationship_type_id;
+
+        if (!name || !phone_number || !password || !relationship_type_id) {
+            req.flash('error', 'All fields are required to add a family member.');
+            return res.redirect('/profile');
+        }
+
+        generateFamilyCardId(userInfo.user_id, userInfo.card_id, (err, card_id) => {
+            if (err) {
+                req.flash('error', err.message);
+                return res.redirect('/profile');
+            }
+
+            addFamilyMember(userInfo.user_id, { card_id, name, phone_number, password, relationship_type_id }, (err) => {
+                if (err) {
+                    throw err;
+                }
+                req.flash('success', `${name} was added to your family. Their card ID is ${card_id}`);
+                res.redirect('/profile');
+            });
+        });
+    });
+});
+
+// edit family member (name, relationship, and optionally reset their password)
+app.post('/profile/family/:id/edit', checkAuthenticated, (req, res) => {
+    getUserById(req.session.user.user_id, (err, userInfo) => {
+        if (err) {
+            throw err;
+        }
+
+        if (userInfo.primary_user_id !== null) {
+            req.flash('error', 'Only the family owner can edit family members.');
+            return res.redirect('/profile');
+        }
+
+        const name = req.body.name.trim();
+        const relationship_type_id = req.body.relationship_type_id;
+        const password = req.body.password.trim();
+
+        if (!name || !relationship_type_id) {
+            req.flash('error', 'Name and relationship are required.');
+            return res.redirect('/profile');
+        }
+
+        updateFamilyMember(req.params.id, userInfo.user_id, { name, relationship_type_id, password }, (err) => {
+            if (err) {
+                throw err;
+            }
+            req.flash('success', 'Family member updated.');
+            res.redirect('/profile');
+        });
+    });
+});
+
+// delete family member
+app.post('/profile/family/:id/delete', checkAuthenticated, (req, res) => {
+    getUserById(req.session.user.user_id, (err, userInfo) => {
+        if (err) {
+            throw err;
+        }
+
+        // if the user is not the family owner, they cannot remove family members
+        if (userInfo.primary_user_id !== null) {
+            req.flash('error', 'Only the family owner can remove family members.');
+            return res.redirect('/profile');
+        }
+
+        deleteFamilyMember(req.params.id, userInfo.user_id, (err) => {
+            if (err) {
+                throw err;
+            }
+            req.flash('success', 'Family member removed.');
+            res.redirect('/profile');
+        });
+    });
+});
+
+// destroys the session
 app.get('/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/');
