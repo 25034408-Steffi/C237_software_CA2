@@ -193,3 +193,14 @@ INSERT INTO `c237_026_team5_ca2`.`order` (`order_id`, `user_id`, `total`, `point
 INSERT INTO `c237_026_team5_ca2`.`order_item` (`order_item_id`, `order_id`, `menu_item_id`, `size_id`, `quantity`) VALUES
 (6, 3, 9, NULL, 1);  -- Murg Tikka Masala x1
 
+-- -----------------------------------------------------
+-- Favourites
+-- -----------------------------------------------------
+INSERT INTO `c237_026_team5_ca2`.`favourite` (`user_id`, `menu_item_id`) VALUES
+(2, 3),   -- John Tan: Laksa
+(2, 19),  -- John Tan: Hawaiian Pizza
+(3, 11),  -- Mary Lim: Spaghetti Bolognese
+(3, 22),  -- Mary Lim: Salsiccia Pizza
+(4, 27),  -- Lily Tan: Tiramisu
+(4, 25);  -- Lily Tan: Mango Smoothie
+

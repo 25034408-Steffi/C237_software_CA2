@@ -4,7 +4,12 @@ const flash = require('connect-flash');
 
 const app = express();
 const db = require('./database');
-const { getFoodCategoryCount, getFoodByCategory } = require("./models/foodModel");
+const { 
+    getFoodCategoryCount, 
+    getFoodByCategory, 
+    getUserFavourites,
+    getFavouritesCount
+} = require("./models/foodModel");
 const { 
     getUserById, 
     updateUser, 
@@ -149,6 +154,32 @@ app.get('/menu', (req, res) => {
     res.redirect('/menu/Asian');
 });
 
+// cant add a favourite category (food cant exist in 2 categories simultaneously)
+// so faourites tab is hardcoded into the foodNav
+// instead, fetch from a favourote table
+app.get('/menu/favourites', checkAuthenticated, (req, res) => {
+    getFoodCategoryCount((err, categoryCount) => {
+        if (err) throw err;
+
+        getUserFavourites(req.session.user.user_id, (err, favouriteMenuItems) => {
+            if (err) throw err;
+
+            getFavouritesCount(req.session.user.user_id, (err, favouriteCount) => {
+                if (err) throw err;
+
+                res.render('menu', {
+                    user: req.session.user,
+                    counts: categoryCount,
+                    activeCategory: 'Favourites',
+                    menuItems: favouriteMenuItems,
+                    favouriteCount
+                });
+
+            });
+        });
+    });
+});
+
 app.get('/menu/:category', checkAuthenticated, (req, res) => {
     const activeCategory = req.params.category;
     getFoodCategoryCount((err, categoryCount) => {
@@ -157,11 +188,16 @@ app.get('/menu/:category', checkAuthenticated, (req, res) => {
         getFoodByCategory(activeCategory, (err, menuItems) => {
             if (err) throw err;
 
-            res.render('menu', {
-                user: req.session.user, 
-                counts: categoryCount, 
-                activeCategory,
-                menuItems
+            getFavouritesCount(req.session.user.user_id, (err, favouriteCount) => {
+                if (err) throw err;
+
+                res.render('menu', {
+                    user: req.session.user,
+                    counts: categoryCount,
+                    activeCategory,
+                    menuItems,
+                    favouriteCount
+                });
             });
         });
     });

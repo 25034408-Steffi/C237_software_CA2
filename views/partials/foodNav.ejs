@@ -9,5 +9,13 @@
         </a>
       </li>
     <% } %>
+    <!-- favourites nav item -->
+    <li class="nav-item">
+      <a class="nav-link <%= activeCategory === 'Favourites' ? 'active' : '' %>"
+        href="/menu/favourites">
+        Favourites
+        <span class="opacity-75">(<%= favouriteCount %>)</span>
+      </a>
+    </li>
   </ul>
 </div>
