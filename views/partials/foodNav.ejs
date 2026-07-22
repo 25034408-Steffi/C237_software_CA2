@@ -1,12 +1,13 @@
-
-<ul class="nav nav-underline overflow-x-auto flex-nowrap justify-content-center">
-  <% for (let i=0; i < counts.length; i++){ %>
-    <li class="nav-item">
-      <a class="nav-link <%= activeCategory === counts[i].name ? 'active' : '' %>" 
-        href="/menu/<%= counts[i].name %>">
-        <%= counts[i].name %> 
-        (<%= counts[i].item_count%>)
-      </a>
-    </li>
-  <% }%>
-</ul>
+<div class="food-nav-wrapper">
+  <ul class="nav nav-underline category-pills overflow-x-auto flex-nowrap justify-content-center justify-content-lg-start">
+    <% for (let i=0; i < counts.length; i++){ %>
+      <li class="nav-item">
+        <a class="nav-link <%= activeCategory === counts[i].name ? 'active' : '' %>"
+          href="/menu/<%= counts[i].name %>">
+          <%= counts[i].name %>
+          <span class="opacity-75">(<%= counts[i].item_count %>)</span>
+        </a>
+      </li>
+    <% } %>
+  </ul>
+</div>
