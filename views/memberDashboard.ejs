@@ -1,4 +1,4 @@
-<%# Done by: Khaing Khant Zaw (Leon) - Member dashboard: search, quick actions, category icons, dishes, points card %>
+<%# Done by: Khaing Khant Zaw (Leon) - Member dashboard: search, Order Now mode, ratings, categories, floating cart popup %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,7 +10,7 @@
 </head>
 <body class="bg-light">
   <%- include("partials/navbar") %>
-  <div class="container mt-4 mb-5">
+  <div class="container mt-4 mb-5 pb-5">
 
     <!-- search dishes across the whole menu -->
     <form method="GET" action="/dashboard" class="input-group input-group-lg mb-4 shadow-sm">
@@ -28,12 +28,24 @@
     <% if (messages && messages.length > 0) { %>
       <div class="alert alert-success"><%= messages[0] %></div>
     <% } %>
+    <% if (errors && errors.length > 0) { %>
+      <div class="alert alert-danger"><%= errors[0] %></div>
+    <% } %>
 
     <div class="row g-4">
       <div class="col-lg-8">
 
-        <!-- quick actions -->
-        <div class="row row-cols-3 g-3 mb-4">
+        <!-- quick actions: Order Now lights up and reveals the ordering controls -->
+        <div class="row row-cols-2 row-cols-md-4 g-3 mb-4">
+          <div class="col">
+            <div class="card h-100 text-center shadow-sm order-now-card" id="orderNowBtn" style="cursor: pointer;">
+              <div class="card-body">
+                <i class="bi bi-bag-plus fs-2 text-success"></i>
+                <h6 class="card-title mt-2 mb-0">Order Now</h6>
+                <small class="text-muted" id="orderNowHint">Tap to start ordering</small>
+              </div>
+            </div>
+          </div>
           <div class="col">
             <a href="/book-table" class="text-decoration-none">
               <div class="card h-100 text-center shadow-sm">
@@ -88,24 +100,58 @@
         <% if (dishes.length === 0) { %>
           <div class="alert alert-info">No dishes found<%= search ? ' for this search' : ' in this category' %>.</div>
         <% } %>
+        <%# Pasta shows as just two menus (Bolognese / Carbonara) - the pasta
+            type gets chosen on the customise page %>
+        <% let shownDishes = dishes;
+           if (!search && activeCategory === 'Pasta') {
+             shownDishes = dishes.filter(d => d.name.indexOf('Spaghetti') === 0);
+           } %>
         <div class="row row-cols-1 row-cols-md-2 g-3">
-          <% for (let i = 0; i < dishes.length; i++) { %>
+          <% for (let i = 0; i < shownDishes.length; i++) { %>
+            <% const displayName = (!search && activeCategory === 'Pasta')
+                 ? shownDishes[i].name.replace('Spaghetti ', '') : shownDishes[i].name; %>
             <div class="col">
               <div class="card h-100 shadow-sm food-card">
                 <div class="card-body">
                   <div class="d-flex justify-content-between align-items-start">
-                    <h6 class="card-title mb-1"><%= dishes[i].name %></h6>
-                    <a href="/favourites/toggle/<%= dishes[i].menu_item_id %>?category=<%= encodeURIComponent(activeCategory) %>"
-                       class="text-decoration-none fs-5" title="Add or remove favourite">
-                      <i class="bi <%= dishes[i].is_fav ? 'bi-heart-fill text-danger' : 'bi-heart text-secondary' %>"></i>
-                    </a>
+                    <%# clicking the dish opens its detail page - or the
+                        customise page when Order Now is switched on %>
+                    <h6 class="card-title mb-1">
+                      <a href="/dish/<%= shownDishes[i].menu_item_id %>" class="dish-link text-decoration-none text-dark"
+                         data-id="<%= shownDishes[i].menu_item_id %>"><%= displayName %></a>
+                    </h6>
+                    <div class="d-flex align-items-center gap-2">
+                      <%# average rating shown beside the heart %>
+                      <% if (shownDishes[i].avg_stars) { %>
+                        <small class="text-warning fw-bold">
+                          <i class="bi bi-star-fill"></i> <%= shownDishes[i].avg_stars %>
+                          <span class="text-muted fw-normal">(<%= shownDishes[i].rating_count %>)</span>
+                        </small>
+                      <% } %>
+                      <a href="/favourites/toggle/<%= shownDishes[i].menu_item_id %>?category=<%= encodeURIComponent(activeCategory) %>"
+                         class="text-decoration-none fs-5" title="Add or remove favourite">
+                        <i class="bi <%= shownDishes[i].is_fav ? 'bi-heart-fill text-danger' : 'bi-heart text-secondary' %>"></i>
+                      </a>
+                    </div>
                   </div>
-                  <p class="card-text text-muted small mb-2"><%= dishes[i].description %></p>
+                  <p class="card-text text-muted small mb-2"><%= shownDishes[i].description %></p>
                   <div class="d-flex justify-content-between align-items-center">
-                    <strong>$<%= dishes[i].price %></strong>
-                    <% if (dishes[i].points_cost) { %>
-                      <span class="badge bg-warning text-dark"><i class="bi bi-trophy"></i> <%= dishes[i].points_cost %> pts</span>
+                    <% if (shownDishes[i].category === 'Pizza' || activeCategory === 'Pizza') { %>
+                      <strong>from $15.00</strong>
+                    <% } else if (shownDishes[i].category === 'Drinks' || activeCategory === 'Drinks') { %>
+                      <strong>from $3.00</strong>
+                    <% } else { %>
+                      <strong>$<%= shownDishes[i].price %></strong>
                     <% } %>
+                    <div class="d-flex align-items-center gap-2">
+                      <% if (shownDishes[i].points_cost) { %>
+                        <span class="badge bg-warning text-dark"><i class="bi bi-trophy"></i> <%= shownDishes[i].points_cost %> pts</span>
+                      <% } %>
+                      <%# visible only while Order Now is active %>
+                      <a href="/customise/<%= shownDishes[i].menu_item_id %>" class="btn btn-sm btn-success order-add-btn" style="display: none;">
+                        <i class="bi bi-cart-plus"></i> Add
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -126,6 +172,35 @@
           </div>
         </div>
 
+        <%# order status card - tap an order to open its tracker %>
+        <div class="card shadow-sm mb-3">
+          <div class="card-body">
+            <h6 class="mb-2"><i class="bi bi-truck text-danger"></i> Order Status</h6>
+            <% if (!myOrders || myOrders.length === 0) { %>
+              <p class="text-muted small mb-0">No orders yet - tap Order Now to get started!</p>
+            <% } else { %>
+              <% const statusBadges = { preparing: 'bg-warning text-dark', ready: 'bg-primary', received: 'bg-success', finished: 'bg-success' }; %>
+              <% for (let i = 0; i < myOrders.length; i++) { %>
+                <a href="/order-status/<%= myOrders[i].order_id %>" class="text-decoration-none text-dark">
+                  <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2 order-status-row">
+                    <div>
+                      <strong>#<%= myOrders[i].order_id %></strong>
+                      <small class="text-muted">
+                        <%= myOrders[i].order_type === 'online' ? 'Online' : (myOrders[i].table_number ? 'Table ' + myOrders[i].table_number : 'Dine-in') %>
+                        · $<%= myOrders[i].total %>
+                      </small>
+                      <% if (myOrders[i].impatient && myOrders[i].status !== 'finished') { %>
+                        <i class="bi bi-lightning-charge-fill text-danger" title="Rush requested"></i>
+                      <% } %>
+                    </div>
+                    <span class="badge <%= statusBadges[myOrders[i].status] %>"><%= myOrders[i].status %></span>
+                  </div>
+                </a>
+              <% } %>
+            <% } %>
+          </div>
+        </div>
+
         <% if (nextBooking) { %>
           <div class="card shadow-sm border-success mb-3">
             <div class="card-body">
@@ -142,5 +217,147 @@
       </div>
     </div>
   </div>
+
+  <!-- floating cart button (like food delivery apps) -->
+  <button type="button" class="btn btn-primary floating-cart shadow" data-bs-toggle="modal" data-bs-target="#cartModal">
+    <i class="bi bi-cart3 fs-4"></i>
+    <span class="badge rounded-pill bg-danger cart-badge"><%= cartCount %></span>
+  </button>
+
+  <!-- cart popup: blurred background, dine-in vs online -->
+  <div class="modal fade" id="cartModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-cart3"></i> Your Cart (<%= cartCount %> item<%= cartCount === 1 ? '' : 's' %>)</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <% if (cartItems.length === 0) { %>
+            <p class="text-muted mb-0">Your cart is empty - tap <strong>Order Now</strong> and add some dishes!</p>
+          <% } else { %>
+            <table class="table table-sm align-middle">
+              <tbody>
+                <% for (let i = 0; i < cartItems.length; i++) { %>
+                  <tr>
+                    <td>
+                      <%= cartItems[i].name %>
+                      <% if (cartItems[i].addonNames && cartItems[i].addonNames.length > 0) { %>
+                        <br><small class="text-muted">+ <%= cartItems[i].addonNames.join(', ') %></small>
+                      <% } %>
+                      <% if (cartItems[i].comment) { %>
+                        <br><small class="text-muted fst-italic">"<%= cartItems[i].comment %>"</small>
+                      <% } %>
+                    </td>
+                    <td class="text-muted">x<%= cartItems[i].quantity %></td>
+                    <td class="text-end">$<%= (cartItems[i].price * cartItems[i].quantity).toFixed(2) %></td>
+                  </tr>
+                <% } %>
+              </tbody>
+              <tfoot>
+                <tr><th>Subtotal</th><td></td><th class="text-end">$<%= cartSubtotal.toFixed(2) %></th></tr>
+                <% if (discountRate > 0) { %>
+                  <tr class="text-success">
+                    <td colspan="2"><i class="bi bi-credit-card"></i> <%= tier.toUpperCase() %> card discount (<%= discountRate * 100 %>%)</td>
+                    <td class="text-end">-$<%= (cartSubtotal * discountRate).toFixed(2) %></td>
+                  </tr>
+                <% } %>
+              </tfoot>
+            </table>
+
+            <form method="POST" action="/checkout">
+              <p class="mb-2 fw-bold">Where are you eating?</p>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="order_mode" value="restaurant" id="modeRestaurant">
+                <label class="form-check-label" for="modeRestaurant"><i class="bi bi-shop"></i> In the restaurant</label>
+              </div>
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="order_mode" value="online" id="modeOnline" checked>
+                <label class="form-check-label" for="modeOnline"><i class="bi bi-phone"></i> Order online (delivery)</label>
+              </div>
+
+              <!-- shown only for dine-in -->
+              <div id="tableBox" class="mb-3 ps-4" style="display: none;">
+                <label class="form-label">Table number</label>
+                <input type="number" class="form-control" name="table_number" min="1" style="width: 120px">
+              </div>
+
+              <!-- shown only for online orders -->
+              <div id="deliveryBox" class="mb-3 ps-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="delivery_option" value="saver" id="delSaver">
+                  <label class="form-check-label" for="delSaver">Saver (45-50 min) <span class="text-success">-$3.00</span></label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="delivery_option" value="standard" id="delStandard" checked>
+                  <label class="form-check-label" for="delStandard">Standard (20-35 min)</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="delivery_option" value="priority" id="delPriority">
+                  <label class="form-check-label" for="delPriority">Priority (15-20 min) <span class="text-danger">+$3.00</span></label>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary w-100">Place Order</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // L13 DOM enhancement - Khaing Khant Zaw (Leon)
+    // Order Now toggles "ordering mode": the button lights up and clicking a
+    // dish opens the CUSTOMISE page instead of the detail/reviews page.
+    const orderNowBtn = document.getElementById('orderNowBtn');
+    function setOrderMode(on) {
+      orderNowBtn.classList.toggle('order-now-active', on);
+      // dish names open the customise page instead of the reviews page
+      document.querySelectorAll('.dish-link').forEach(a => {
+        a.href = (on ? '/customise/' : '/dish/') + a.dataset.id;
+      });
+      // green Add buttons appear on every dish so the mode is obvious
+      document.querySelectorAll('.order-add-btn').forEach(b => {
+        b.style.display = on ? 'inline-block' : 'none';
+      });
+      document.getElementById('orderNowHint').textContent =
+        on ? 'Ordering ON - tap a dish to customise' : 'Tap to start ordering';
+    }
+    let ordering = <%= orderMode ? 'true' : 'false' %>; // stays on after adding an item
+    orderNowBtn.addEventListener('click', () => {
+      ordering = !ordering;
+      setOrderMode(ordering);
+    });
+    setOrderMode(ordering);
+
+    // the whole dish card is clickable, not just its title
+    // (clicks on the heart / Add button keep their own behaviour)
+    document.querySelectorAll('.food-card').forEach(card => {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('a, button, input, select, form')) return;
+        const link = card.querySelector('.dish-link');
+        if (link) window.location.href = link.getAttribute('href');
+      });
+    });
+
+    // dine-in asks for a table number, online asks for a delivery speed
+    const modeRestaurant = document.getElementById('modeRestaurant');
+    const modeOnline = document.getElementById('modeOnline');
+    const tableBox = document.getElementById('tableBox');
+    const deliveryBox = document.getElementById('deliveryBox');
+    function updateMode() {
+      if (modeRestaurant && modeRestaurant.checked) {
+        tableBox.style.display = 'block';
+        deliveryBox.style.display = 'none';
+      } else if (tableBox) {
+        tableBox.style.display = 'none';
+        deliveryBox.style.display = 'block';
+      }
+    }
+    if (modeRestaurant) modeRestaurant.addEventListener('change', updateMode);
+    if (modeOnline) modeOnline.addEventListener('change', updateMode);
+  </script>
 </body>
 </html>

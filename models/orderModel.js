@@ -48,9 +48,12 @@ function getOrderById(orderId, callback) {
 
 // the food and drinks inside one order
 function getOrderItems(orderId, callback) {
+    // unit_price is the price actually charged (with size and add-ons);
+    // older rows fall back to the menu price
     const sql = `
-    SELECT oi.quantity, mi.name, mi.price, c.name AS category,
-           (oi.quantity * mi.price) AS line_total
+    SELECT oi.quantity, mi.name, oi.comment,
+           COALESCE(oi.unit_price, mi.price) AS price, c.name AS category,
+           (oi.quantity * COALESCE(oi.unit_price, mi.price)) AS line_total
     FROM order_item oi
     INNER JOIN menu_item mi ON mi.menu_item_id = oi.menu_item_id
     INNER JOIN category c ON c.category_id = mi.category_id
@@ -65,4 +68,51 @@ function getOrderItems(orderId, callback) {
     })
 }
 
-module.exports = {getOrdersByType, updateOrderStatus, getOrderById, getOrderItems}
+// ---------- member side: order status tracking ----------
+
+// a member's recent orders for the dashboard status card
+function getOrdersByUser(userId, callback) {
+    const sql = `
+    SELECT order_id, total, status, order_type, impatient, table_number, delivery_option, created_at
+    FROM \`order\`
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+    LIMIT 5`
+    db.query(sql, [userId], (err, results) => {
+        if (err) {
+            return callback(err)
+        }
+        callback(null, results)
+    })
+}
+
+// one order, but only if it belongs to this member (stops url guessing)
+function getOrderForUser(orderId, userId, callback) {
+    const sql = `
+    SELECT order_id, total, points_earned, discount_amount, status, order_type,
+           impatient, table_number, delivery_option, created_at
+    FROM \`order\`
+    WHERE order_id = ? AND user_id = ?`
+    db.query(sql, [orderId, userId], (err, results) => {
+        if (err) {
+            return callback(err)
+        }
+        callback(null, results[0])
+    })
+}
+
+// online orders: only the customer confirms they received the food
+function markReceived(orderId, userId, callback) {
+    const sql = "UPDATE `order` SET status = 'received' WHERE order_id = ? AND user_id = ? AND status IN ('preparing', 'ready')"
+    db.query(sql, [orderId, userId], callback)
+}
+
+// dine-in orders: member asks the kitchen to hurry - the admin sees the
+// red 'impatient' badge on the in-restaurant orders page
+function rushOrder(orderId, userId, callback) {
+    const sql = "UPDATE `order` SET impatient = 1 WHERE order_id = ? AND user_id = ? AND status IN ('preparing', 'ready')"
+    db.query(sql, [orderId, userId], callback)
+}
+
+module.exports = {getOrdersByType, updateOrderStatus, getOrderById, getOrderItems,
+                  getOrdersByUser, getOrderForUser, markReceived, rushOrder}

@@ -8,12 +8,27 @@ const db = require('./database');
 const { getFoodCategoryCount, getFoodByCategory, getUserFavourites, getFavouritesCount,
         getAllMenuItems, getMenuItemById,
         getAllCategories, insertMenuItem, updateMenuItem, deleteMenuItem, toggleAvailability,
-        getDishesForMember, getFavourites, toggleFavourite, getRedeemableItems } = require("./models/foodModel");
+        getDishesForMember, getFavourites, toggleFavourite, getRedeemableItems,
+        rateItem, getItemsByIds, getReviews, getMenuItemWithCategory,
+        getAllAddOns, findMenuItemByName } = require("./models/foodModel");
 const { addComplaint, getAllComplaints, removeComplaint } = require("./models/complaintModel");
 const { getUserById, updateUser, getFamilyMembers, getRelationshipTypes, generateFamilyCardId, addFamilyMember, updateFamilyMember, deleteFamilyMember,
-        getAllMembers, getMemberById, getMemberSpending, findMemberByCardId } = require("./models/userModel");
+        getAllMembers, getMemberById, getMemberSpending, findMemberByCardId, updateCardTier } = require("./models/userModel");
+
+// ============================================================
+// Done by: Khaing Khant Zaw (Leon)
+// Membership card discounts applied at checkout
+// ============================================================
+const TIER_DISCOUNT = { basic: 0, silver: 0.05, gold: 0.10, vip: 0.15 };
+
+// flat sizing from the design: every pizza is $15 small / $22 regular,
+// every drink is $3 small / $5 large (size_id points at the size table)
+const PIZZA_SIZES = { small: { id: 1, label: 'Small (12")', price: 15 }, regular: { id: 2, label: 'Regular (16")', price: 22 } };
+const DRINK_SIZES = { small: { id: 3, label: 'Small', price: 3 }, large: { id: 4, label: 'Large', price: 5 } };
+const PASTA_TYPES = ['Spaghetti', 'Fusilli', 'Penne', 'Linguine'];
 const { getDashboardCounts } = require("./models/adminModel");
-const { getOrdersByType, updateOrderStatus, getOrderById, getOrderItems } = require("./models/orderModel");
+const { getOrdersByType, updateOrderStatus, getOrderById, getOrderItems,
+        getOrdersByUser, getOrderForUser, markReceived, rushOrder } = require("./models/orderModel");
 const { getReservationsByStatus, acceptReservation, addWalkInReservation, removeReservation,
         getReservationsByUser, addMemberReservation, cancelOwnReservation } = require("./models/reservationModel");
 
@@ -147,7 +162,7 @@ app.post('/login', (req, res) => {
     // members log in with their card ID; the admin logs in with their name (same form).
     // session only stores non-sensitive columns (no password)
     const sql = `
-    SELECT user_id, card_id, name, role, points
+    SELECT user_id, card_id, name, role, points, card_tier
     FROM user
     WHERE (card_id = ? OR (name = ? AND role = 'admin')) AND password = SHA1(?)`;
 
@@ -172,126 +187,118 @@ app.post('/login', (req, res) => {
     });
 });
 
-// Menu routes
+// Menu routes - the old menu pages now forward to the new member dashboard
+// so there is only one menu look for members (old links keep working)
 app.get('/menu', (req, res) => {
-    res.redirect('/menu/Asian');
+    res.redirect('/dashboard');
 });
 
 // cant add a favourite category (food cant exist in 2 categories simultaneously)
 // so faourites tab is hardcoded into the foodNav
 // instead, fetch from a favourote table
 app.get('/menu/favourites', checkAuthenticated, (req, res) => {
-    getFoodCategoryCount((err, categoryCount) => {
-        if (err) throw err;
-
-        getUserFavourites(req.session.user.user_id, (err, favouriteMenuItems) => {
-            if (err) throw err;
-
-            getFavouritesCount(req.session.user.user_id, (err, favouriteCount) => {
-                if (err) throw err;
-
-                res.render('menu', {
-                    user: req.session.user,
-                    counts: categoryCount,
-                    activeCategory: 'Favourites',
-                    menuItems: favouriteMenuItems,
-                    favouriteCount
-                });
-
-            });
-        });
-    });
+    res.redirect('/favourites');
 });
 
 app.get('/menu/:category', checkAuthenticated, (req, res) => {
-    const activeCategory = req.params.category;
-    getFoodCategoryCount((err, categoryCount) => {
-        if (err) throw err;
-
-        getFoodByCategory(activeCategory, (err, menuItems) => {
-            if (err) throw err;
-
-            getFavouritesCount(req.session.user.user_id, (err, favouriteCount) => {
-                if (err) throw err;
-
-                res.render('menu', {
-                    user: req.session.user,
-                    counts: categoryCount,
-                    activeCategory,
-                    menuItems,
-                    favouriteCount
-                });
-            });
-        });
-    });
+    res.redirect('/dashboard?category=' + encodeURIComponent(req.params.category));
 });
 
 // ==========================================
 // FEATURE ASSIGNMENT: CART & RESERVATIONS
 // ==========================================
 
-// 1. ADD TO CART (Session-based Cart)
+// 1. ADD TO CART (session cart with customisation)
+// The price is worked out HERE on the server from the chosen options -
+// the browser never decides what anything costs.
 app.post('/add-to-cart/:id', checkAuthenticated, (req, res) => {
-    const foodId = parseInt(req.params.id);
     const quantity = parseInt(req.body.quantity) || 1;
-
     if (!req.session.cart) {
         req.session.cart = [];
     }
 
-    const existingIndex = req.session.cart.findIndex(item => item.foodId === foodId);
-    if (existingIndex > -1) {
-        req.session.cart[existingIndex].quantity += quantity;
-    } else {
-        req.session.cart.push({ foodId, quantity });
-    }
+    getMenuItemWithCategory(req.params.id, (err, item) => {
+        if (err) throw err;
+        if (!item || !item.available) {
+            req.flash('error', 'That dish is not available right now.');
+            return res.redirect('/dashboard');
+        }
 
-    req.flash('success', 'Item added to cart.');
-    res.redirect('/cart');
+        const comment = (req.body.comment || '').trim().slice(0, 255) || null;
+        // one cart line = { foodId, quantity, unitPrice, label, sizeId, addonIds, addonNames, comment }
+        const line = { foodId: item.menu_item_id, quantity, unitPrice: Number(item.price),
+                       label: item.name, sizeId: null, addonIds: [], addonNames: [], comment: null };
+
+        const finish = () => {
+            req.session.cart.push(line);
+            req.flash('success', `${line.label} added to cart.`);
+            res.redirect('/dashboard?order=1');
+        };
+
+        if (item.category === 'Pizza') {
+            // crust (free choice) + flat size pricing + priced add-ons + comment
+            const size = PIZZA_SIZES[req.body.size] ? req.body.size : 'small';
+            const crust = req.body.crust === 'thin' ? 'Thin Crust' : 'Normal Crust';
+            line.sizeId = PIZZA_SIZES[size].id;
+            line.unitPrice = PIZZA_SIZES[size].price;
+            line.label = `${item.name} (${PIZZA_SIZES[size].label}, ${crust})`;
+            line.comment = comment;
+            // add-on prices come from the add_on table, never from the form
+            let picked = req.body.addons || [];
+            if (!Array.isArray(picked)) picked = [picked];
+            getAllAddOns((err2, addOns) => {
+                if (err2) throw err2;
+                addOns.forEach(a => {
+                    if (picked.includes(String(a.add_on_id))) {
+                        line.addonIds.push(a.add_on_id);
+                        line.addonNames.push(a.name);
+                        line.unitPrice += Number(a.price);
+                    }
+                });
+                finish();
+            });
+            return;
+        }
+
+        if (item.category === 'Pasta') {
+            // menu shows just Bolognese / Carbonara; the type picks the real item
+            const type = PASTA_TYPES.includes(req.body.pasta_type) ? req.body.pasta_type : 'Spaghetti';
+            const sauce = item.name.includes('Carbonara') ? 'Carbonara' : 'Bolognese';
+            findMenuItemByName(`${type} ${sauce}`, (err2, variant) => {
+                if (err2) throw err2;
+                if (!variant) {
+                    req.flash('error', 'That pasta combination is not available.');
+                    return res.redirect('/dashboard');
+                }
+                line.foodId = variant.menu_item_id;
+                line.unitPrice = Number(variant.price);
+                line.label = variant.name;
+                finish();
+            });
+            return;
+        }
+
+        if (item.category === 'Drinks') {
+            const size = DRINK_SIZES[req.body.size] ? req.body.size : 'small';
+            line.sizeId = DRINK_SIZES[size].id;
+            line.unitPrice = DRINK_SIZES[size].price;
+            line.label = `${item.name} (${DRINK_SIZES[size].label})`;
+            finish();
+            return;
+        }
+
+        if (item.category === 'Asian' || item.category === 'Tandoori') {
+            // modification comment only ("less chilli please")
+            line.comment = comment;
+        }
+        // Dessert (and anything else) stays as it is
+        finish();
+    });
 });
 
-// 2. VIEW CART (Server-side Total Calculation)
+// 2. VIEW CART - the floating cart popup on the dashboard is the cart now
 app.get('/cart', checkAuthenticated, (req, res) => {
-    const cart = req.session.cart || [];
-    
-    if (cart.length === 0) {
-        return res.render('cart', { 
-            user: req.session.user, 
-            cartItems: [], 
-            total: "0.00",
-            messages: req.flash('success'),
-            errors: req.flash('error')
-        });
-    }
-
-    const ids = cart.map(item => item.foodId);
-    // fixed to match the real schema: table is menu_item, pk is menu_item_id
-    const sql = `SELECT * FROM menu_item WHERE menu_item_id IN (?)`;
-
-    db.query(sql, [ids], (err, results) => {
-        if (err) throw err;
-
-        let total = 0;
-        const cartItems = results.map(food => {
-            const itemInCart = cart.find(c => c.foodId === food.menu_item_id);
-            const itemTotal = food.price * itemInCart.quantity;
-            total += itemTotal;
-
-            return {
-                ...food,
-                quantity: itemInCart.quantity,
-                itemTotal: itemTotal.toFixed(2)
-            };
-        });
-
-        res.render('cart', {
-            user: req.session.user,
-            cartItems,
-            total: total.toFixed(2),
-            messages: req.flash('success'),
-            errors: req.flash('error')
-        });
-    });
+    res.redirect('/dashboard');
 });
 
 // 3. CHECKOUT (INSERT INTO order & order_item)
@@ -304,44 +311,76 @@ app.post('/checkout', checkAuthenticated, (req, res) => {
         return res.redirect('/cart');
     }
 
-    const ids = cart.map(item => item.foodId);
-    // fixed to match the real schema (menu_item / order.total / order_item.menu_item_id)
-    db.query(`SELECT * FROM menu_item WHERE menu_item_id IN (?)`, [ids], (err, items) => {
+    // dine in (table number) or online (delivery speed) - from the cart popup
+    const orderMode = req.body.order_mode === 'restaurant' ? 'in_restaurant' : 'online';
+    let tableNumber = null;
+    let deliveryOption = null;
+    let deliveryAdjust = 0;
+    if (orderMode === 'in_restaurant') {
+        tableNumber = parseInt(req.body.table_number);
+        if (!tableNumber) {
+            req.flash('error', 'Please enter your table number to order in the restaurant.');
+            return res.redirect('/dashboard');
+        }
+    } else {
+        // saver is slower but $3 cheaper, priority is faster but $3 more
+        const options = { saver: -3, priority: 3, standard: 0 };
+        deliveryOption = options[req.body.delivery_option] !== undefined ? req.body.delivery_option : 'standard';
+        deliveryAdjust = options[deliveryOption];
+    }
+
+    // every cart line already carries the server-computed unit price
+    // (base + size + add-ons, set in /add-to-cart)
+    let subtotal = 0;
+    cart.forEach(line => subtotal += line.unitPrice * line.quantity);
+
+    // membership card discount: basic 0%, silver 5%, gold 10%, vip 15%
+    const tier = req.session.user.card_tier || 'basic';
+    const discountAmount = Math.round(subtotal * (TIER_DISCOUNT[tier] || 0) * 100) / 100;
+    const calculatedTotal = Math.max(0, subtotal - discountAmount + deliveryAdjust);
+
+    // members earn 1 loyalty point per dollar actually paid
+    const pointsEarned = Math.floor(calculatedTotal);
+    const insertOrderSql = `INSERT INTO \`order\` (user_id, total, points_earned, discount_amount, status, order_type, table_number, delivery_option) VALUES (?, ?, ?, ?, 'preparing', ?, ?, ?)`;
+    db.query(insertOrderSql, [userId, calculatedTotal, pointsEarned, discountAmount, orderMode, tableNumber, deliveryOption], (err, result) => {
         if (err) throw err;
 
-        let calculatedTotal = 0;
-        cart.forEach(cartItem => {
-            const food = items.find(f => f.menu_item_id === cartItem.foodId);
-            if (food) {
-                calculatedTotal += food.price * cartItem.quantity;
-            }
-        });
+        const orderId = result.insertId;
 
-        // members earn 1 loyalty point per dollar spent
-        const pointsEarned = Math.floor(calculatedTotal);
-        const insertOrderSql = `INSERT INTO \`order\` (user_id, total, points_earned, status, order_type) VALUES (?, ?, ?, 'preparing', 'online')`;
-        db.query(insertOrderSql, [userId, calculatedTotal, pointsEarned], (err, result) => {
-            if (err) throw err;
-
-            const orderId = result.insertId;
-            const orderItemsData = cart.map(item => {
-                return [orderId, item.foodId, item.quantity];
-            });
-
-            const insertItemsSql = `INSERT INTO order_item (order_id, menu_item_id, quantity) VALUES ?`;
-            db.query(insertItemsSql, [orderItemsData], (err) => {
-                if (err) throw err;
-
-                // credit the points to the member's account
-                db.query('UPDATE user SET points = points + ? WHERE user_id = ?', [pointsEarned, userId], (err) => {
-                    if (err) throw err;
+        // items go in one at a time so each add-on row can point at its
+        // order_item_id (order_item_has_add_on needs it)
+        const insertLine = (i) => {
+            if (i >= cart.length) {
+                // all items saved - credit the points to the member's account
+                db.query('UPDATE user SET points = points + ? WHERE user_id = ?', [pointsEarned, userId], (err2) => {
+                    if (err2) throw err2;
                     req.session.user.points += pointsEarned; // keep the navbar pill in sync
                     req.session.cart = []; // Clear cart after successful checkout
-                    req.flash('success', `Order placed successfully! You earned ${pointsEarned} points.`);
-                    res.redirect('/orders');
+                    let msg = `Order placed successfully! You earned ${pointsEarned} points.`;
+                    if (discountAmount > 0) {
+                        msg += ` Your ${tier.toUpperCase()} card saved you $${discountAmount.toFixed(2)}.`;
+                    }
+                    req.flash('success', msg);
+                    return res.redirect('/orders');
+                });
+                return;
+            }
+            const line = cart[i];
+            const itemSql = 'INSERT INTO order_item (order_id, menu_item_id, quantity, size_id, comment, unit_price) VALUES (?, ?, ?, ?, ?, ?)';
+            db.query(itemSql, [orderId, line.foodId, line.quantity, line.sizeId || null, line.comment || null, line.unitPrice], (err2, itemResult) => {
+                if (err2) throw err2;
+                const addonIds = line.addonIds || [];
+                if (addonIds.length === 0) {
+                    return insertLine(i + 1);
+                }
+                const addonRows = addonIds.map(a => [itemResult.insertId, a]);
+                db.query('INSERT INTO order_item_has_add_on (order_item_id, add_on_id) VALUES ?', [addonRows], (err3) => {
+                    if (err3) throw err3;
+                    insertLine(i + 1);
                 });
             });
-        });
+        };
+        insertLine(0);
     });
 });
 
@@ -357,7 +396,7 @@ app.get('/orders', checkAuthenticated, (req, res) => {
             o.status,
             o.created_at,
             oi.quantity,
-            mi.price AS unit_price,
+            COALESCE(oi.unit_price, mi.price) AS unit_price,
             mi.name AS food_name
         FROM \`order\` o
         JOIN order_item oi ON o.order_id = oi.order_id
@@ -442,12 +481,133 @@ app.get('/dashboard', checkAuthenticated, (req, res) => {
             getReservationsByUser(req.session.user.user_id, (err3, reservations) => {
                 if (err3) throw err3;
                 const nextBooking = reservations.find(r => r.status === 'upcoming');
-                res.render('memberDashboard', {
-                    user: req.session.user, categories, activeCategory, dishes, search, nextBooking,
-                    messages: req.flash('success')
+
+                // the floating cart popup reads the session cart directly -
+                // each line already has its label, options and computed price
+                const cart = req.session.cart || [];
+                let cartSubtotal = 0;
+                const cartItems = cart.map(line => {
+                    cartSubtotal += line.unitPrice * line.quantity;
+                    return { name: line.label, price: line.unitPrice, quantity: line.quantity,
+                             addonNames: line.addonNames || [], comment: line.comment };
                 });
+                const tier = req.session.user.card_tier || 'basic';
+                const discountRate = TIER_DISCOUNT[tier] || 0;
+
+                // recent orders for the Order Status card under the points
+                getOrdersByUser(req.session.user.user_id, (err5, myOrders) => {
+                    if (err5) throw err5;
+                    res.render('memberDashboard', {
+                        user: req.session.user, categories, activeCategory, dishes, search, nextBooking,
+                        cartItems, cartSubtotal, tier, discountRate, myOrders,
+                        cartCount: cart.reduce((n, c) => n + c.quantity, 0),
+                        orderMode: req.query.order === '1',
+                        messages: req.flash('success'), errors: req.flash('error')
+                    });
+                })
             })
         })
+    })
+})
+
+// dish detail page: description plus every member review (stars + comments).
+// this is what a dish click opens while Order Now is NOT active
+app.get('/dish/:id', checkAuthenticated, (req, res) => {
+    getMenuItemWithCategory(req.params.id, (err, item) => {
+        if (err) throw err;
+        if (!item) return res.status(404).send('Dish not found');
+        getReviews(req.params.id, (err2, reviews) => {
+            if (err2) throw err2;
+            // average worked out here so the page can draw filled star icons
+            let avg = 0;
+            reviews.forEach(r => avg += r.stars);
+            avg = reviews.length > 0 ? Math.round((avg / reviews.length) * 10) / 10 : 0;
+            res.render('dishDetail', {
+                user: req.session.user, item, reviews, avg,
+                messages: req.flash('success'), errors: req.flash('error')
+            });
+        })
+    })
+})
+
+// member rates a dish 1-5 stars with an optional comment
+app.post('/rate/:id', checkAuthenticated, (req, res) => {
+    rateItem(req.session.user.user_id, req.params.id, req.body.stars, req.body.comment, (err) => {
+        if (err) {
+            req.flash('error', 'Could not save your rating.');
+        } else {
+            req.flash('success', 'Thanks for your review!');
+        }
+        res.redirect('/dish/' + req.params.id);
+    })
+})
+
+// customise page: what a dish click opens while Order Now IS active.
+// each category gets its own options (see the POST below for the pricing)
+app.get('/customise/:id', checkAuthenticated, (req, res) => {
+    getMenuItemWithCategory(req.params.id, (err, item) => {
+        if (err) throw err;
+        if (!item) return res.status(404).send('Dish not found');
+        getAllAddOns((err2, addOns) => {
+            if (err2) throw err2;
+            res.render('customise', {
+                user: req.session.user, item, addOns,
+                pizzaSizes: PIZZA_SIZES, drinkSizes: DRINK_SIZES, pastaTypes: PASTA_TYPES,
+                errors: req.flash('error')
+            });
+        })
+    })
+})
+
+// order status tracker (like delivery apps): progress steps, summary,
+// and the actions - online orders get "Received", dine-in gets "Rush"
+app.get('/order-status/:id', checkAuthenticated, (req, res) => {
+    getOrderForUser(req.params.id, req.session.user.user_id, (err, order) => {
+        if (err) throw err;
+        if (!order) return res.status(404).send('Order not found');
+        getOrderItems(order.order_id, (err2, items) => {
+            if (err2) throw err2;
+            // delivery estimate follows the chosen speed
+            const estimates = { saver: '45-50 min', priority: '15-20 min', standard: '20-35 min' };
+            res.render('orderStatus', {
+                user: req.session.user, order, items,
+                estimate: order.delivery_option ? estimates[order.delivery_option] : null,
+                messages: req.flash('success'), errors: req.flash('error')
+            });
+        })
+    })
+})
+
+// online orders: the member confirms the food arrived
+app.post('/order-status/:id/received', checkAuthenticated, (req, res) => {
+    markReceived(req.params.id, req.session.user.user_id, (err) => {
+        if (err) throw err;
+        req.flash('success', 'Enjoy your meal! Order marked as received.');
+        res.redirect('/order-status/' + req.params.id);
+    })
+})
+
+// dine-in orders: rush request - flags the order so the admin sees the
+// red "impatient" badge on the in-restaurant orders page
+app.post('/order-status/:id/rush', checkAuthenticated, (req, res) => {
+    rushOrder(req.params.id, req.session.user.user_id, (err) => {
+        if (err) throw err;
+        req.flash('success', 'Rush requested! The kitchen has been notified to speed up your order.');
+        res.redirect('/order-status/' + req.params.id);
+    })
+})
+
+// member switches their membership card from the profile page
+app.post('/profile/card', checkAuthenticated, (req, res) => {
+    const tier = req.body.card_tier;
+    updateCardTier(req.session.user.user_id, tier, (err) => {
+        if (err) {
+            req.flash('error', 'That card type is not available.');
+        } else {
+            req.session.user.card_tier = tier; // keep the session in sync
+            req.flash('success', `Your card has been switched to ${tier.toUpperCase()}.`);
+        }
+        res.redirect('/profile');
     })
 })
 

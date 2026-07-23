@@ -2,7 +2,7 @@ const db = require('../database');
 
 function getUserById(userId, callback) {
     const sql = `
-    SELECT user_id, card_id, name, phone_number, points, role, primary_user_id, relationship_type_id
+    SELECT user_id, card_id, name, phone_number, points, role, card_tier, primary_user_id, relationship_type_id
     FROM user
     WHERE user_id = ?`;
 
@@ -195,6 +195,15 @@ function getMemberSpending(userId, fromDate, toDate, callback) {
     });
 }
 
+// member switches their card from the profile page (whitelist keeps the enum safe)
+function updateCardTier(userId, tier, callback) {
+    const allowed = ['basic', 'silver', 'gold', 'vip'];
+    if (!allowed.includes(tier)) {
+        return callback(new Error('Invalid card type: ' + tier));
+    }
+    db.query('UPDATE user SET card_tier = ? WHERE user_id = ?', [tier, userId], callback);
+}
+
 // look a member up by their card number (used when the admin adds a phone reservation)
 function findMemberByCardId(cardId, callback) {
     db.query("SELECT * FROM user WHERE card_id = ? AND role = 'customer'", [cardId], (err, results) => {
@@ -217,5 +226,6 @@ module.exports = {
     getAllMembers,
     getMemberById,
     getMemberSpending,
-    findMemberByCardId
+    findMemberByCardId,
+    updateCardTier
 }

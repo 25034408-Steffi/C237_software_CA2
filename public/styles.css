@@ -387,3 +387,90 @@ form .login-text, form .register-text {
     font-size: 2.1rem;
   }
 }
+
+/* ============================================================
+   Done by: Khaing Khant Zaw (Leon)
+   Membership cards, Order Now mode, floating cart popup
+   ============================================================ */
+
+/* the member's card, styled per tier */
+.member-card {
+    border-radius: 14px;
+    padding: 1.4rem;
+    min-height: 170px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+.member-card-number {
+    font-size: 1.3rem;
+    letter-spacing: 3px;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+}
+.member-card-tier {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.member-card-mini {
+    border: 2px solid transparent;
+    border-radius: 10px;
+    padding: 0.7rem 0.4rem;
+    text-align: center;
+    cursor: pointer;
+}
+.member-card-mini.member-card-current {
+    border-color: #0d6efd;
+}
+
+/* Basic: light beige */
+.card-basic  { background-color: #f5f0e1; color: #6b5d45; }
+/* Silver: metallic grey */
+.card-silver { background: linear-gradient(135deg, #d7d7d7, #a8a9ad 60%, #c8c8c8); color: #3b3b3b; }
+/* Gold: champagne gold */
+.card-gold   { background: linear-gradient(135deg, #f7e7ce, #e3c98a 60%, #f1ddb0); color: #6b4e16; }
+/* VIP: matte black with gold text */
+.card-vip    { background-color: #1c1c1c; color: #d4af37; }
+
+/* Order Now card lights up while ordering mode is on */
+.order-now-card.order-now-active {
+    background-color: #d1e7dd;
+    border: 2px solid #198754;
+    box-shadow: 0 0 12px rgba(25, 135, 84, 0.5);
+}
+
+/* floating cart button pinned to the bottom like delivery apps */
+.floating-cart {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1040;
+    border-radius: 50%;
+    width: 62px;
+    height: 62px;
+}
+.floating-cart .cart-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+}
+
+/* blur the page behind the cart popup */
+.modal-backdrop.show {
+    backdrop-filter: blur(4px);
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* order status tracker circles (delivery-app style) */
+.status-circle {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+}
+.status-done     { background-color: #198754; color: white; }
+.status-active   { background-color: #fd7e14; color: white; box-shadow: 0 0 0 5px rgba(253, 126, 20, 0.25); }
+.status-upcoming { background-color: #e9ecef; color: #6c757d; }
+.order-status-row:hover { background-color: #f8f9fa; }

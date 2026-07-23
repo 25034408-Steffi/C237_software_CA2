@@ -32,7 +32,12 @@
         <tbody>
           <% for (let i = 0; i < items.length; i++) { %>
             <tr>
-              <td><%= items[i].name %></td>
+              <td>
+                <%= items[i].name %>
+                <% if (items[i].comment) { %>
+                  <br><small class="text-muted fst-italic">"<%= items[i].comment %>"</small>
+                <% } %>
+              </td>
               <td><%= items[i].category %></td>
               <td>$<%= items[i].price %></td>
               <td><%= items[i].quantity %></td>

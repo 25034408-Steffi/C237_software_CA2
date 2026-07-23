@@ -14,7 +14,12 @@
       <!-- Back to menu link -->
       <div class="row justify-content-center">
         <div class="col-lg-8">
-          <a href="/menu" class="btn btn-link ps-0 mb-2 text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Back to Menu</a>
+          <%# back goes to the right home for the role - Khaing Khant Zaw (Leon) %>
+          <% if (user && user.role === 'admin') { %>
+            <a href="/admin" class="btn btn-link ps-0 mb-2 text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Back to Dashboard</a>
+          <% } else { %>
+            <a href="/dashboard" class="btn btn-link ps-0 mb-2 text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Back to Dashboard</a>
+          <% } %>
         </div>
       </div>
 
@@ -61,6 +66,70 @@
           </div>
         </div>
       </div>
+      <%# ============================================================
+          Done by: Khaing Khant Zaw (Leon)
+          Membership card: shows the member's current card and lets them
+          switch between Basic / Silver / Gold / VIP (discount changes too)
+          ============================================================ %>
+      <% if (profileUser.role === 'customer') { %>
+      <% const tierInfo = {
+           basic:  { label: 'Basic Card',  icon: 'bi-credit-card',      discount: 'No discount' },
+           silver: { label: 'Silver Card', icon: 'bi-credit-card-2-front', discount: '5% off every order' },
+           gold:   { label: 'Gold Card',   icon: 'bi-credit-card-fill', discount: '10% off every order' },
+           vip:    { label: 'VIP Card',    icon: 'bi-gem',              discount: '15% off every order' }
+         };
+         const myTier = profileUser.card_tier || 'basic'; %>
+      <div class="row justify-content-center mt-4">
+        <div class="col-lg-8 profile">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">My Membership Card</h5>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="switchCardBtn">
+              <i class="bi bi-arrow-left-right me-1"></i>Switch Card
+            </button>
+          </div>
+
+          <!-- the member's current card -->
+          <div class="member-card card-<%= myTier %>">
+            <div class="d-flex justify-content-between align-items-start">
+              <i class="bi <%= tierInfo[myTier].icon %> fs-1"></i>
+              <span class="member-card-tier"><%= tierInfo[myTier].label %></span>
+            </div>
+            <div class="mt-4">
+              <div class="member-card-number"><%= profileUser.card_id %></div>
+              <div class="d-flex justify-content-between align-items-end">
+                <span><%= profileUser.name %></span>
+                <small><%= tierInfo[myTier].discount %></small>
+              </div>
+            </div>
+          </div>
+
+          <!-- switch panel: hidden until Switch Card is tapped (L13 DOM) -->
+          <div id="cardChoices" class="row row-cols-2 row-cols-md-4 g-2 mt-2" style="display: none;">
+            <% ['basic', 'silver', 'gold', 'vip'].forEach(function(t) { %>
+              <div class="col">
+                <form method="POST" action="/profile/card">
+                  <input type="hidden" name="card_tier" value="<%= t %>">
+                  <button type="submit" class="member-card-mini card-<%= t %> w-100 <%= t === myTier ? 'member-card-current' : '' %>">
+                    <i class="bi <%= tierInfo[t].icon %> fs-3"></i>
+                    <div class="fw-bold"><%= tierInfo[t].label %></div>
+                    <small><%= tierInfo[t].discount %></small>
+                    <% if (t === myTier) { %><div><small><i class="bi bi-check-circle-fill"></i> current</small></div><% } %>
+                  </button>
+                </form>
+              </div>
+            <% }); %>
+          </div>
+        </div>
+      </div>
+      <script>
+        // tap Switch Card to reveal / hide the four card designs
+        document.getElementById('switchCardBtn').addEventListener('click', () => {
+          const panel = document.getElementById('cardChoices');
+          panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+        });
+      </script>
+      <% } %>
+
       <!--
         Family Members card.
         isFamilyOwner = true when profileUser.primary_user_id IS NULL (they're the account owner).

@@ -129,13 +129,20 @@ function toggleAvailability(id, callback) {
 // the whole menu. 86'd items are hidden, and each row carries is_fav for
 // the heart toggle of the logged-in member.
 function getDishesForMember(userId, category, search, callback) {
+    // the derived table pre-computes each dish's average star rating (AVG + GROUP BY)
     let sql = `
     SELECT mi.menu_item_id, mi.name, mi.image, mi.description, mi.price, mi.points_cost,
            c.name AS category,
-           f.user_id IS NOT NULL AS is_fav
+           f.user_id IS NOT NULL AS is_fav,
+           rt.avg_stars, rt.rating_count
     FROM menu_item mi
     INNER JOIN category c ON c.category_id = mi.category_id
     LEFT JOIN favourite f ON f.menu_item_id = mi.menu_item_id AND f.user_id = ?
+    LEFT JOIN (
+        SELECT menu_item_id, ROUND(AVG(stars), 1) AS avg_stars, COUNT(*) AS rating_count
+        FROM rating
+        GROUP BY menu_item_id
+    ) rt ON rt.menu_item_id = mi.menu_item_id
     WHERE mi.available = 1`
     const params = [userId]
 
@@ -187,6 +194,91 @@ function toggleFavourite(userId, menuItemId, callback) {
     })
 }
 
+// one rating per member per dish: update it if they rated before, insert otherwise.
+// comment is optional ("Broth was rich!")
+function rateItem(userId, menuItemId, stars, comment, callback) {
+    const value = parseInt(stars);
+    if (!value || value < 1 || value > 5) {
+        return callback(new Error('Rating must be between 1 and 5'));
+    }
+    const text = (comment || '').trim() || null;
+    db.query('SELECT * FROM rating WHERE user_id = ? AND menu_item_id = ?', [userId, menuItemId], (err, rows) => {
+        if (err) {
+            return callback(err)
+        }
+        if (rows.length > 0) {
+            db.query('UPDATE rating SET stars = ?, comment = ? WHERE user_id = ? AND menu_item_id = ?', [value, text, userId, menuItemId], callback)
+        } else {
+            db.query('INSERT INTO rating (user_id, menu_item_id, stars, comment) VALUES (?, ?, ?, ?)', [userId, menuItemId, value, text], callback)
+        }
+    })
+}
+
+// every review for one dish, with the reviewer's name (for the detail page)
+function getReviews(menuItemId, callback) {
+    const sql = `
+    SELECT r.stars, r.comment, u.name
+    FROM rating r
+    INNER JOIN user u ON u.user_id = r.user_id
+    WHERE r.menu_item_id = ?
+    ORDER BY r.stars DESC`
+    db.query(sql, [menuItemId], (err, results) => {
+        if (err) {
+            return callback(err)
+        }
+        callback(null, results)
+    })
+}
+
+// one dish together with its category name (customise/detail pages need both)
+function getMenuItemWithCategory(id, callback) {
+    const sql = `
+    SELECT mi.*, c.name AS category
+    FROM menu_item mi
+    INNER JOIN category c ON c.category_id = mi.category_id
+    WHERE mi.menu_item_id = ?`
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            return callback(err)
+        }
+        callback(null, results[0])
+    })
+}
+
+// the pizza add-ons with their prices (Anchovies, Olives, ...)
+function getAllAddOns(callback) {
+    db.query('SELECT * FROM add_on ORDER BY add_on_id', (err, results) => {
+        if (err) {
+            return callback(err)
+        }
+        callback(null, results)
+    })
+}
+
+// pasta shows as just "Bolognese" / "Carbonara"; the chosen pasta type picks
+// the real menu item, e.g. type "Penne" + sauce "Carbonara" -> "Penne Carbonara"
+function findMenuItemByName(name, callback) {
+    db.query('SELECT * FROM menu_item WHERE name = ? AND available = 1', [name], (err, results) => {
+        if (err) {
+            return callback(err)
+        }
+        callback(null, results[0])
+    })
+}
+
+// details for the items sitting in the session cart (used by the cart popup)
+function getItemsByIds(ids, callback) {
+    if (!ids || ids.length === 0) {
+        return callback(null, [])
+    }
+    db.query('SELECT menu_item_id, name, price FROM menu_item WHERE menu_item_id IN (?)', [ids], (err, results) => {
+        if (err) {
+            return callback(err)
+        }
+        callback(null, results)
+    })
+}
+
 // everything a member can redeem with points, cheapest first
 function getRedeemableItems(callback) {
     const sql = `
@@ -219,5 +311,11 @@ module.exports = {
     getDishesForMember,
     getFavourites,
     toggleFavourite,
-    getRedeemableItems
+    getRedeemableItems,
+    rateItem,
+    getItemsByIds,
+    getReviews,
+    getMenuItemWithCategory,
+    getAllAddOns,
+    findMenuItemByName
 }

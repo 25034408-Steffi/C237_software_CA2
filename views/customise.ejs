@@ -1,0 +1,170 @@
+<%# Done by: Khaing Khant Zaw (Leon) - Customise a dish before adding to cart (crust, size, add-ons, pasta type, comments) %>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customise <%= item.name %> | Supper Club</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body class="bg-light">
+  <%- include("partials/navbar") %>
+  <div class="container mt-4 mb-5 col-lg-7">
+    <a href="/dashboard?order=1" class="btn btn-sm btn-outline-secondary mb-3"><i class="bi bi-x-lg"></i> Back</a>
+
+    <% const isPasta = item.category === 'Pasta';
+       const sauce = isPasta ? (item.name.includes('Carbonara') ? 'Carbonara' : 'Bolognese') : null; %>
+    <h2 class="mb-1">Customise</h2>
+    <h4 class="text-muted mb-3"><%= isPasta ? sauce : item.name %></h4>
+    <p class="text-muted"><%= item.description %></p>
+
+    <% if (errors && errors.length > 0) { %>
+      <div class="alert alert-danger"><%= errors[0] %></div>
+    <% } %>
+
+    <form method="POST" action="/add-to-cart/<%= item.menu_item_id %>">
+      <% if (item.category === 'Pizza') { %>
+        <!-- crust choice (required, both free) -->
+        <div class="card shadow-sm mb-3">
+          <div class="card-body">
+            <h6>Choice of Crust <span class="badge bg-dark">Required</span></h6>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="crust" value="normal" id="crustNormal" checked>
+              <label class="form-check-label d-flex justify-content-between" for="crustNormal">
+                <span>Normal Crust <span class="badge bg-danger">🔥 Popular</span></span><span class="text-muted">Free</span>
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="crust" value="thin" id="crustThin">
+              <label class="form-check-label d-flex justify-content-between" for="crustThin">
+                <span>Crunchy Thin Crust</span><span class="text-muted">Free</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- size decides the base price -->
+        <div class="card shadow-sm mb-3">
+          <div class="card-body">
+            <h6>Size <span class="badge bg-dark">Required</span></h6>
+            <div class="form-check">
+              <input class="form-check-input price-part" type="radio" name="size" value="small" data-price="<%= pizzaSizes.small.price %>" id="sizeSmall" checked>
+              <label class="form-check-label d-flex justify-content-between" for="sizeSmall">
+                <span><%= pizzaSizes.small.label %></span><strong>$<%= pizzaSizes.small.price.toFixed(2) %></strong>
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input price-part" type="radio" name="size" value="regular" data-price="<%= pizzaSizes.regular.price %>" id="sizeRegular">
+              <label class="form-check-label d-flex justify-content-between" for="sizeRegular">
+                <span><%= pizzaSizes.regular.label %></span><strong>$<%= pizzaSizes.regular.price.toFixed(2) %></strong>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- priced add-ons -->
+        <div class="card shadow-sm mb-3">
+          <div class="card-body">
+            <h6>Add-ons</h6>
+            <% for (let i = 0; i < addOns.length; i++) { %>
+              <div class="form-check">
+                <input class="form-check-input price-part" type="checkbox" name="addons" value="<%= addOns[i].add_on_id %>"
+                       data-price="<%= addOns[i].price %>" id="addon<%= addOns[i].add_on_id %>">
+                <label class="form-check-label d-flex justify-content-between" for="addon<%= addOns[i].add_on_id %>">
+                  <span><%= addOns[i].name %></span><span class="text-danger">+$<%= Number(addOns[i].price).toFixed(2) %></span>
+                </label>
+              </div>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- modification comment, e.g. "less pineapple" -->
+        <div class="card shadow-sm mb-3">
+          <div class="card-body">
+            <h6>Any modification?</h6>
+            <input type="text" class="form-control" name="comment" maxlength="255"
+                   placeholder="e.g. less pineapple, less chicken ham...">
+          </div>
+        </div>
+      <% } %>
+
+      <% if (isPasta) { %>
+        <div class="card shadow-sm mb-3">
+          <div class="card-body">
+            <h6>Choice of Pasta <span class="badge bg-dark">Required</span></h6>
+            <% for (let i = 0; i < pastaTypes.length; i++) { %>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="pasta_type" value="<%= pastaTypes[i] %>"
+                       id="pasta<%= i %>" <%= i === 0 ? 'checked' : '' %>>
+                <label class="form-check-label" for="pasta<%= i %>"><%= pastaTypes[i] %> <%= sauce %></label>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (item.category === 'Drinks') { %>
+        <div class="card shadow-sm mb-3">
+          <div class="card-body">
+            <h6>Size <span class="badge bg-dark">Required</span></h6>
+            <div class="form-check">
+              <input class="form-check-input price-part" type="radio" name="size" value="small" data-price="<%= drinkSizes.small.price %>" id="dSmall" checked>
+              <label class="form-check-label d-flex justify-content-between" for="dSmall">
+                <span>Small</span><strong>$<%= drinkSizes.small.price.toFixed(2) %></strong>
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input price-part" type="radio" name="size" value="large" data-price="<%= drinkSizes.large.price %>" id="dLarge">
+              <label class="form-check-label d-flex justify-content-between" for="dLarge">
+                <span>Large</span><strong>$<%= drinkSizes.large.price.toFixed(2) %></strong>
+              </label>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (item.category === 'Asian' || item.category === 'Tandoori') { %>
+        <div class="card shadow-sm mb-3">
+          <div class="card-body">
+            <h6>Any modification?</h6>
+            <input type="text" class="form-control" name="comment" maxlength="255"
+                   placeholder="e.g. less spicy, no prawns...">
+          </div>
+        </div>
+      <% } %>
+
+      <% if (item.category === 'Dessert') { %>
+        <p class="text-muted"><i class="bi bi-info-circle"></i> Desserts are served just as they are.</p>
+      <% } %>
+
+      <!-- quantity + live price, pinned like the reference app -->
+      <div class="card shadow-sm">
+        <div class="card-body d-flex align-items-center gap-3">
+          <input type="number" class="form-control" name="quantity" id="qty" value="1" min="1" max="20" style="width: 85px">
+          <button type="submit" class="btn btn-primary flex-grow-1">
+            Add to cart · $<span id="livePrice"><%= Number(item.price).toFixed(2) %></span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // L13 DOM enhancement - live price preview while customising.
+    // The REAL price is recomputed on the server in /add-to-cart.
+    const basePrice = <%= item.category === 'Pizza' ? pizzaSizes.small.price
+                          : (item.category === 'Drinks' ? drinkSizes.small.price : Number(item.price)) %>;
+    function refreshPrice() {
+      let price = basePrice;
+      const sizePicked = document.querySelector('input[name="size"]:checked');
+      if (sizePicked) price = parseFloat(sizePicked.dataset.price);
+      document.querySelectorAll('input[name="addons"]:checked').forEach(a => price += parseFloat(a.dataset.price));
+      const qty = parseInt(document.getElementById('qty').value) || 1;
+      document.getElementById('livePrice').textContent = (price * qty).toFixed(2);
+    }
+    document.querySelectorAll('.price-part, #qty').forEach(el => el.addEventListener('change', refreshPrice));
+    refreshPrice();
+  </script>
+</body>
+</html>
