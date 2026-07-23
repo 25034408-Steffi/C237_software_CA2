@@ -7,12 +7,15 @@ const multer = require('multer');
 const app = express();
 const db = require('./database')
 const { getFoodCategoryCount, getFoodByCategory, getAllMenuItems, getMenuItemById,
-        getAllCategories, insertMenuItem, updateMenuItem, deleteMenuItem, toggleAvailability } = require("./models/foodModel");
+        getAllCategories, insertMenuItem, updateMenuItem, deleteMenuItem, toggleAvailability,
+        getDishesForMember, getFavourites, toggleFavourite, getRedeemableItems } = require("./models/foodModel");
+const { addComplaint, getAllComplaints, removeComplaint } = require("./models/complaintModel");
 const { getUserById, updateUser, getFamilyMembers, getRelationshipTypes, generateFamilyCardId, addFamilyMember, updateFamilyMember, deleteFamilyMember,
         getAllMembers, getMemberById, getMemberSpending, findMemberByCardId } = require("./models/userModel");
 const { getDashboardCounts } = require("./models/adminModel");
-const { getOrdersByType, updateOrderStatus } = require("./models/orderModel");
-const { getReservationsByStatus, acceptReservation, addWalkInReservation, removeReservation } = require("./models/reservationModel");
+const { getOrdersByType, updateOrderStatus, getOrderById, getOrderItems } = require("./models/orderModel");
+const { getReservationsByStatus, acceptReservation, addWalkInReservation, removeReservation,
+        getReservationsByUser, addMemberReservation, cancelOwnReservation } = require("./models/reservationModel");
 
 // ============================================================
 // Done by: Khaing Khant Zaw (Leon)
@@ -148,7 +151,7 @@ app.post('/login', (req, res) => {
             if (req.session.user.role === 'admin') {
                 res.redirect('/admin');
             } else {
-                res.redirect('/menu');
+                res.redirect('/dashboard');
             }
         } else {
             // Invalid credentials
@@ -187,8 +190,119 @@ app.get('/menu/:category', checkAuthenticated, (req, res) => {
 
 // ============================================================
 // Done by: Khaing Khant Zaw (Leon)
+// Member dashboard routes: dashboard with categories + search,
+// favourites, book a table, complaints, redeem catalogue
+// ============================================================
+
+// member home: first category shown by default, or search results
+app.get('/dashboard', checkAuthenticated, (req, res) => {
+    const search = (req.query.search || '').trim();
+    getAllCategories((err, categories) => {
+        if (err) throw err;
+        // default to the first category (e.g. Asian) when none picked
+        const activeCategory = req.query.category || (categories.length > 0 ? categories[0].name : '');
+        getDishesForMember(req.session.user.user_id, activeCategory, search, (err2, dishes) => {
+            if (err2) throw err2;
+            // show the member's next confirmed booking as a banner
+            getReservationsByUser(req.session.user.user_id, (err3, reservations) => {
+                if (err3) throw err3;
+                const nextBooking = reservations.find(r => r.status === 'upcoming');
+                res.render('memberDashboard', {
+                    user: req.session.user, categories, activeCategory, dishes, search, nextBooking,
+                    messages: req.flash('success')
+                });
+            })
+        })
+    })
+})
+
+// one heart button adds or removes a favourite, then returns to where you were
+app.get('/favourites/toggle/:id', checkAuthenticated, (req, res) => {
+    toggleFavourite(req.session.user.user_id, req.params.id, (err) => {
+        if (err) throw err;
+        if (req.query.back === 'favourites') {
+            res.redirect('/favourites');
+        } else {
+            res.redirect('/dashboard?category=' + encodeURIComponent(req.query.category || ''));
+        }
+    })
+})
+
+app.get('/favourites', checkAuthenticated, (req, res) => {
+    getFavourites(req.session.user.user_id, (err, favourites) => {
+        if (err) throw err;
+        res.render('favourites', { user: req.session.user, favourites });
+    })
+})
+
+// book a table: request goes in as pending for the manager to accept
+app.get('/book-table', checkAuthenticated, (req, res) => {
+    getReservationsByUser(req.session.user.user_id, (err, reservations) => {
+        if (err) throw err;
+        res.render('bookTable', {
+            user: req.session.user, reservations,
+            messages: req.flash('success'), errors: req.flash('error')
+        });
+    })
+})
+
+app.post('/book-table', checkAuthenticated, (req, res) => {
+    const { reserve_date, reserve_time, pax } = req.body;
+    if (!reserve_date || !reserve_time || !pax) {
+        req.flash('error', 'Date, time and number of people are required.');
+        return res.redirect('/book-table');
+    }
+    // no bookings in the past
+    if (reserve_date < new Date().toISOString().slice(0, 10)) {
+        req.flash('error', 'The reservation date cannot be in the past.');
+        return res.redirect('/book-table');
+    }
+    addMemberReservation(req.session.user.user_id, reserve_date, reserve_time, pax, (err) => {
+        if (err) throw err;
+        req.flash('success', 'Reservation requested! The restaurant will confirm your table soon.');
+        res.redirect('/book-table');
+    })
+})
+
+app.get('/book-table/cancel/:id', checkAuthenticated, (req, res) => {
+    cancelOwnReservation(req.params.id, req.session.user.user_id, (err) => {
+        if (err) throw err;
+        req.flash('success', 'Reservation cancelled.');
+        res.redirect('/book-table');
+    })
+})
+
+// complaints / suggestions
+app.get('/complain', checkAuthenticated, (req, res) => {
+    res.render('complain', { user: req.session.user, messages: req.flash('success'), errors: req.flash('error') });
+})
+
+app.post('/complain', checkAuthenticated, (req, res) => {
+    const topic = req.body.topic;
+    const message = (req.body.message || '').trim();
+    if (!topic || !message) {
+        req.flash('error', 'Please pick a topic and write your feedback.');
+        return res.redirect('/complain');
+    }
+    addComplaint(req.session.user.user_id, topic, message, (err) => {
+        if (err) throw err;
+        req.flash('success', 'Thank you! The manager will review your feedback.');
+        res.redirect('/complain');
+    })
+})
+
+// what your points can get you (redeeming happens at checkout)
+app.get('/redeem', checkAuthenticated, (req, res) => {
+    getRedeemableItems((err, items) => {
+        if (err) throw err;
+        res.render('redeem', { user: req.session.user, items });
+    })
+})
+
+// ============================================================
+// Done by: Khaing Khant Zaw (Leon)
 // Admin routes: dashboard, manage menu + 86 list, orders,
-// members & spending, reservations
+// members & spending, reservations, complaints
 // ============================================================
 app.get('/admin', checkAuthenticated, checkAdmin, (req, res) => {
     getDashboardCounts((err, counts) => {
@@ -394,6 +508,39 @@ app.get('/admin/reservations/remove/:id', checkAuthenticated, checkAdmin, (req, 
         if (err) throw err;
         req.flash('success', 'Reservation removed.');
         res.redirect('/admin/reservations');
+    })
+})
+
+// drill-down from a member's spending: what was in one order
+app.get('/admin/members/:id/order/:orderId', checkAuthenticated, checkAdmin, (req, res) => {
+    getMemberById(req.params.id, (err, member) => {
+        if (err) throw err;
+        if (!member) return res.status(404).send('Member not found');
+        getOrderById(req.params.orderId, (err2, order) => {
+            if (err2) throw err2;
+            // the order must actually belong to this member
+            if (!order || order.user_id !== member.user_id) return res.status(404).send('Order not found');
+            getOrderItems(req.params.orderId, (err3, items) => {
+                if (err3) throw err3;
+                res.render('adminOrderDetail', { user: req.session.user, member, order, items });
+            })
+        })
+    })
+})
+
+// complaints and opinions from members
+app.get('/admin/complaints', checkAuthenticated, checkAdmin, (req, res) => {
+    getAllComplaints((err, complaints) => {
+        if (err) throw err;
+        res.render('adminComplaints', { user: req.session.user, complaints, messages: req.flash('success') });
+    })
+})
+
+app.get('/admin/complaints/remove/:id', checkAuthenticated, checkAdmin, (req, res) => {
+    removeComplaint(req.params.id, (err) => {
+        if (err) throw err;
+        req.flash('success', 'Complaint cleared.');
+        res.redirect('/admin/complaints');
     })
 })
 

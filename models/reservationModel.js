@@ -39,4 +39,34 @@ function removeReservation(reservationId, callback) {
     db.query('DELETE FROM reservation WHERE reservation_id = ?', [reservationId], callback)
 }
 
-module.exports = {getReservationsByStatus, acceptReservation, addWalkInReservation, removeReservation}
+// ---------- member side (book a table) ----------
+
+// a member's own reservations, soonest first
+function getReservationsByUser(userId, callback) {
+    const sql = `
+    SELECT reservation_id, reserve_date, reserve_time, pax, table_number, status
+    FROM reservation
+    WHERE user_id = ?
+    ORDER BY reserve_date, reserve_time`
+
+    db.query(sql, [userId], (err, results) => {
+        if (err) {
+            return callback(err)
+        }
+        callback(null, results)
+    })
+}
+
+// member requests a table - goes in as pending until the manager accepts
+function addMemberReservation(userId, reserveDate, reserveTime, pax, callback) {
+    const sql = "INSERT INTO reservation (user_id, reserve_date, reserve_time, pax, status) VALUES (?, ?, ?, ?, 'pending')"
+    db.query(sql, [userId, reserveDate, reserveTime, pax], callback)
+}
+
+// member can only cancel their OWN booking (user_id check stops others' ids)
+function cancelOwnReservation(reservationId, userId, callback) {
+    db.query('DELETE FROM reservation WHERE reservation_id = ? AND user_id = ?', [reservationId, userId], callback)
+}
+
+module.exports = {getReservationsByStatus, acceptReservation, addWalkInReservation, removeReservation,
+                  getReservationsByUser, addMemberReservation, cancelOwnReservation}

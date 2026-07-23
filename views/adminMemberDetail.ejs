@@ -57,6 +57,7 @@
             <th>Type</th>
             <th>Status</th>
             <th>Total</th>
+            <th class="text-end"></th>
           </tr>
         </thead>
         <tbody>
@@ -67,6 +68,12 @@
               <td><%= orders[i].order_type === 'online' ? 'Online' : 'In restaurant' %></td>
               <td><%= orders[i].status %></td>
               <td>$<%= orders[i].total %></td>
+              <td class="text-end">
+                <%# click through to see the food and drinks inside this order %>
+                <a href="/admin/members/<%= member.user_id %>/order/<%= orders[i].order_id %>" class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-list-ul"></i> View items
+                </a>
+              </td>
             </tr>
           <% } %>
         </tbody>
