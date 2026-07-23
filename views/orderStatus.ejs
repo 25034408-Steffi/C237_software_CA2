@@ -78,14 +78,14 @@
       </div>
 
       <div class="col-lg-4">
-        <% if (online && (order.status === 'preparing' || order.status === 'ready')) { %>
-          <!-- only the customer can confirm receipt of an online order -->
+        <% if (order.status === 'preparing' || order.status === 'ready') { %>
+          <!-- both dine-in and online: the member confirms once the food arrives -->
           <div class="card shadow-sm mb-3 border-success">
             <div class="card-body text-center">
               <h6><i class="bi bi-house-check text-success"></i> Got your food?</h6>
-              <p class="text-muted small">Confirm once your order arrives - only you can do this.</p>
+              <p class="text-muted small">Confirm once your <%= online ? 'order arrives' : 'food reaches the table' %> - the restaurant sees it too.</p>
               <form method="POST" action="/order-status/<%= order.order_id %>/received">
-                <button type="submit" class="btn btn-success w-100"><i class="bi bi-check-lg"></i> Mark as Received</button>
+                <button type="submit" class="btn btn-success w-100"><i class="bi bi-check-lg"></i> Received</button>
               </form>
             </div>
           </div>

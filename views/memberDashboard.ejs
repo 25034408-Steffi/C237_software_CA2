@@ -246,17 +246,21 @@
                 <a href="/order-status/<%= activeOrder.order_id %>" class="btn btn-outline-secondary btn-sm flex-fill">
                   <i class="bi bi-receipt"></i> View Details
                 </a>
-                <% if (online) { %>
-                  <form method="POST" action="/order-status/<%= activeOrder.order_id %>/received" class="flex-fill d-grid">
-                    <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check2-circle"></i> Received</button>
-                  </form>
-                <% } else if (!activeOrder.impatient) { %>
-                  <form method="POST" action="/order-status/<%= activeOrder.order_id %>/rush" class="flex-fill d-grid">
-                    <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-lightning-charge-fill"></i> Rush My Order</button>
-                  </form>
-                <% } else { %>
-                  <span class="btn btn-outline-danger btn-sm flex-fill disabled"><i class="bi bi-lightning-charge-fill"></i> Rush requested</span>
+                <%# dine-in can still rush the kitchen %>
+                <% if (!online) { %>
+                  <% if (!activeOrder.impatient) { %>
+                    <form method="POST" action="/order-status/<%= activeOrder.order_id %>/rush" class="flex-fill d-grid">
+                      <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-lightning-charge-fill"></i> Rush</button>
+                    </form>
+                  <% } else { %>
+                    <span class="btn btn-outline-danger btn-sm flex-fill disabled"><i class="bi bi-lightning-charge-fill"></i> Rushed</span>
+                  <% } %>
                 <% } %>
+                <%# everyone confirms with Received - the card then disappears
+                    and the admin sees the green received badge %>
+                <form method="POST" action="/order-status/<%= activeOrder.order_id %>/received" class="flex-fill d-grid">
+                  <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check2-circle"></i> Received</button>
+                </form>
               </div>
             </div>
           </div>

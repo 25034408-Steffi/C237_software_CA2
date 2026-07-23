@@ -44,10 +44,7 @@
             <th>Placed</th>
             <th>Total</th>
             <th>Status</th>
-            <%# online orders are read-only: only the customer confirms receipt %>
-            <% if (activeTab === 'restaurant') { %>
-              <th class="text-end">Set Status</th>
-            <% } %>
+            <th class="text-end">Set Status</th>
           </tr>
         </thead>
         <tbody>
@@ -64,29 +61,32 @@
               <td><%= orders[i].created_at.toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' }) %></td>
               <td>$<%= orders[i].total %></td>
               <td><span class="badge <%= badges[orders[i].status] %>"><%= orders[i].status %></span></td>
-              <% if (activeTab === 'restaurant') { %>
               <td class="text-end">
-                <% if (orders[i].status !== 'finished') { %>
-                  <% if (orders[i].status === 'preparing') { %>
+                <% if (orders[i].status === 'preparing' || orders[i].status === 'ready') { %>
+                  <% if (orders[i].status === 'preparing' && activeTab === 'restaurant') { %>
                     <a href="/admin/orders/<%= activeTab %>/status/<%= orders[i].order_id %>/ready" class="btn btn-sm btn-outline-primary">Ready</a>
                   <% } %>
-                  <a href="/admin/orders/<%= activeTab %>/status/<%= orders[i].order_id %>/finished" class="btn btn-sm btn-outline-success">Finish</a>
+                  <%# staff confirms the hand-over if the member has not %>
+                  <a href="/admin/orders/<%= activeTab %>/status/<%= orders[i].order_id %>/received" class="btn btn-sm btn-outline-success">Received</a>
+                  <% if (activeTab === 'restaurant') { %>
+                    <a href="/admin/orders/<%= activeTab %>/status/<%= orders[i].order_id %>/finished" class="btn btn-sm btn-outline-secondary">Finish</a>
+                  <% } %>
+                <% } else if (orders[i].status === 'received') { %>
+                  <a href="/admin/orders/<%= activeTab %>/status/<%= orders[i].order_id %>/finished" class="btn btn-sm btn-outline-secondary">Finish</a>
                 <% } else { %>
                   <span class="text-muted">-</span>
                 <% } %>
               </td>
-              <% } %>
             </tr>
           <% } %>
         </tbody>
       </table>
     </div>
     <% } %>
-    <% if (activeTab === 'online') { %>
-      <p class="text-muted">Online orders update automatically - members confirm receipt from their side.</p>
-    <% } else { %>
-      <p class="text-muted">If a member forgot to confirm receipt, use <em>Finish</em> to close the order yourself.</p>
-    <% } %>
+    <p class="text-muted">
+      Members confirm with <em>Received</em> from their side - the badge turns green here when they do.
+      If they forget, use <em>Received</em> (or <em>Finish</em>) to close the order yourself.
+    </p>
   </div>
 </body>
 </html>
