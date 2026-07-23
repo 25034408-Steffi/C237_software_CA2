@@ -146,6 +146,13 @@ a:hover {
 }
 
 /* profile */
+.profile {
+    background-color: #fff;
+    border-radius: 16px;
+    box-shadow: var(--card-shadow);
+    padding: 2rem;
+}
+
 .profile-avatar {
     font-size: 7rem;
     color: rgb(70, 96, 163);

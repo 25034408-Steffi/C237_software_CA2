@@ -16,14 +16,16 @@ function getFoodCategoryCount(callback) {
     });
 }
 
-function getFoodByCategory(category, callback){
+function getFoodByCategory(category, userId, callback){
     const sql = `
-    SELECT mi.menu_item_id, mi.name, mi.image, description, price, available
+    SELECT mi.menu_item_id, mi.name, mi.image, description, price, available,
+           f.user_id IS NOT NULL AS is_fav
     FROM menu_item mi
     INNER JOIN category c ON c.category_id = mi.category_id
+    LEFT JOIN favourite f ON f.menu_item_id = mi.menu_item_id AND f.user_id = ?
     WHERE c.name = ?`;
 
-    db.query(sql, [category], (err, results) => {
+    db.query(sql, [userId, category], (err, results) => {
         if (err) {
             return callback(err);
         }
@@ -34,7 +36,7 @@ function getFoodByCategory(category, callback){
 // favourites tab on the menu page (teammate's feature - same favourite table)
 function getUserFavourites(userId, callback){
     const sql = `
-    SELECT mi.menu_item_id, mi.name, mi.image, description, price, available
+    SELECT mi.menu_item_id, mi.name, mi.image, description, price, available, TRUE AS is_fav
     FROM menu_item mi
     INNER JOIN favourite f ON mi.menu_item_id = f.menu_item_id
     WHERE f.user_id = ?`;

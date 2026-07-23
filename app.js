@@ -194,8 +194,8 @@ app.get('/menu', (req, res) => {
 });
 
 // cant add a favourite category (food cant exist in 2 categories simultaneously)
-// so faourites tab is hardcoded into the foodNav
-// instead, fetch from a favourote table
+// so favourites tab is hardcoded into the foodNav
+// instead, fetch from a favourite table
 app.get('/menu/favourites', checkAuthenticated, (req, res) => {
     res.redirect('/favourites');
 });
@@ -617,6 +617,8 @@ app.get('/favourites/toggle/:id', checkAuthenticated, (req, res) => {
         if (err) throw err;
         if (req.query.back === 'favourites') {
             res.redirect('/favourites');
+        } else if (req.query.back === 'menu') {
+            res.redirect('/menu/' + encodeURIComponent(req.query.category || 'favourites'));
         } else {
             res.redirect('/dashboard?category=' + encodeURIComponent(req.query.category || ''));
         }
