@@ -208,7 +208,7 @@ app.get('/menu/:category', checkAuthenticated, (req, res) => {
     getFoodCategoryCount((err, categoryCount) => {
         if (err) throw err;
 
-        getFoodByCategory(activeCategory, (err, menuItems) => {
+        getFoodByCategory(activeCategory, req.session.user.user_id, (err, menuItems) => {
             if (err) throw err;
 
             getFavouritesCount(req.session.user.user_id, (err, favouriteCount) => {
@@ -457,6 +457,8 @@ app.get('/favourites/toggle/:id', checkAuthenticated, (req, res) => {
         if (err) throw err;
         if (req.query.back === 'favourites') {
             res.redirect('/favourites');
+        } else if (req.query.back === 'menu') {
+            res.redirect('/menu/' + encodeURIComponent(req.query.category || 'favourites'));
         } else {
             res.redirect('/dashboard?category=' + encodeURIComponent(req.query.category || ''));
         }
