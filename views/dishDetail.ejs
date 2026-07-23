@@ -16,6 +16,8 @@
     <%# five star icons, filled according to the average %>
     <% const fullStars = Math.round(avg); %>
     <div class="card shadow-sm mb-4">
+      <img src="/images/<%= item.image %>" class="card-img-top dish-photo-lg" alt="<%= item.name %>"
+           onerror="this.style.display='none'">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-start">
           <div>

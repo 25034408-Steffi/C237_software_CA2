@@ -15,6 +15,8 @@
 
     <% const isPasta = item.category === 'Pasta';
        const sauce = isPasta ? (item.name.includes('Carbonara') ? 'Carbonara' : 'Bolognese') : null; %>
+    <img src="/images/<%= item.image %>" class="dish-photo-lg rounded shadow-sm mb-3 w-100"
+         alt="<%= item.name %>" onerror="this.style.display='none'">
     <h2 class="mb-1">Customise</h2>
     <h4 class="text-muted mb-3"><%= isPasta ? sauce : item.name %></h4>
     <p class="text-muted"><%= item.description %></p>

@@ -481,3 +481,7 @@ form .login-text, form .register-text {
 .status-active   { background-color: #fd7e14; color: white; box-shadow: 0 0 0 5px rgba(253, 126, 20, 0.25); }
 .status-upcoming { background-color: #e9ecef; color: #6c757d; }
 .order-status-row:hover { background-color: #f8f9fa; }
+
+/* dish photos on the member pages */
+.dish-photo    { height: 150px; object-fit: cover; }
+.dish-photo-lg { height: 260px; object-fit: cover; }

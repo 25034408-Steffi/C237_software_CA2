@@ -112,6 +112,8 @@
                  ? shownDishes[i].name.replace('Spaghetti ', '') : shownDishes[i].name; %>
             <div class="col">
               <div class="card h-100 shadow-sm food-card">
+                <img src="/images/<%= shownDishes[i].image %>" class="card-img-top dish-photo"
+                     alt="<%= displayName %>" onerror="this.style.display='none'">
                 <div class="card-body">
                   <div class="d-flex justify-content-between align-items-start">
                     <%# clicking the dish opens its detail page - or the
