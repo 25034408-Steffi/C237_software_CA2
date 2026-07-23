@@ -25,9 +25,9 @@
                   </div>
               <% } %>
               <% if (messages && messages.length > 0) { %>
-                  <div class="alert alert-success">
+                  <div class="alert alert-success py-2 px-3 my-1">
                       <% messages.forEach(function(message) { %>
-                          <p><%= message %></p>
+                          <p class="mb-0"><%= message %></p>
                       <% }); %>
                   </div>
               <% } %>

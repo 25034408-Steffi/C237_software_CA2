@@ -21,11 +21,11 @@
       <!-- Profile card: avatar + read-only info + Edit Profile button -->
       <div class="row justify-content-center">
         <div class="col-lg-8 profile">
-          <% if (messages && messages.length > 0) { %>
-            <div class="alert alert-success"><% messages.forEach(function(message) { %><p class="mb-0"><%= message %></p><% }); %></div>
-          <% } %>
           <% if (errors && errors.length > 0) { %>
-            <div class="alert alert-danger"><% errors.forEach(function(error) { %><p class="mb-0"><%= error %></p><% }); %></div>
+            <div class="alert alert-danger py-2 px-3 my-1"><% errors.forEach(function(error) { %><p class="mb-0"><%= error %></p><% }); %></div>
+          <% } %>
+          <% if (messages && messages.length > 0) { %>
+            <div class="alert alert-success py-2 px-3 my-1"><% messages.forEach(function(message) { %><p class="mb-0"><%= message %></p><% }); %></div>
           <% } %>
           <div class="row align-items-center">
             <div class="col-12 col-md-4 text-center mb-4 mb-md-0">
@@ -91,7 +91,7 @@
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editMemberModal<%= member.user_id %>">
                       <i class="bi bi-pencil-square me-1"></i>Edit
                     </button>
-                    <form action="/profile/family/<%= member.user_id %>/delete" method="POST" onsubmit="return confirm('Remove this family member from your family?');">
+                    <form action="/profile/family/<%= member.user_id %>/delete" method="POST" onsubmit="return confirm('Remove <%= member.name %> from your family?');">
                       <button type="submit" class="btn btn-outline-danger btn-sm">
                         <i class="bi bi-trash me-1"></i>Remove
                       </button>

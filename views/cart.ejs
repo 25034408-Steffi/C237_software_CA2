@@ -17,14 +17,14 @@
     </div>
 
     <% if (errors && errors.length > 0) { %>
-        <div class="alert alert-danger py-2 px-3 my-2">
+        <div class="alert alert-danger py-2 px-3 my-1">
             <% errors.forEach(function(error) { %>
                 <p class="mb-0"><%= error %></p>
             <% }); %>
         </div>
     <% } %>
     <% if (messages && messages.length > 0) { %>
-        <div class="alert alert-success py-2 px-3 my-2">
+        <div class="alert alert-success py-2 px-3 my-1">
             <% messages.forEach(function(message) { %>
                 <p class="mb-0"><%= message %></p>
             <% }); %>

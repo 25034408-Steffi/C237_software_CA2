@@ -38,7 +38,7 @@ app.set('view engine', 'ejs');
 
 // Custom Middlewares
 const validateRegistration = (req, res, next) => {
-    const { name, telephoneNo, password } = req.body;
+    const { name, telephoneNo, password, confirmPassword } = req.body;
 
     if (!name || !telephoneNo || !password ) {
         req.flash('error', 'All fields are required.');
@@ -48,6 +48,11 @@ const validateRegistration = (req, res, next) => {
     if (password.length < 6) {
         req.flash('error', 'Password should be at least 6 or more characters long');
         req.flash('formData', req.body); 
+        return res.redirect('/register');
+    }
+    if (password !== confirmPassword) {
+        req.flash('error', 'Password and confirm password do not match');
+        req.flash('formData', req.body);
         return res.redirect('/register');
     }
     next();
