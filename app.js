@@ -1,12 +1,12 @@
 const express = require('express');
-
 const session = require('express-session');
 const flash = require('connect-flash');
 const multer = require('multer');
 
 const app = express();
-const db = require('./database')
-const { getFoodCategoryCount, getFoodByCategory, getAllMenuItems, getMenuItemById,
+const db = require('./database');
+const { getFoodCategoryCount, getFoodByCategory, getUserFavourites, getFavouritesCount,
+        getAllMenuItems, getMenuItemById,
         getAllCategories, insertMenuItem, updateMenuItem, deleteMenuItem, toggleAvailability,
         getDishesForMember, getFavourites, toggleFavourite, getRedeemableItems } = require("./models/foodModel");
 const { addComplaint, getAllComplaints, removeComplaint } = require("./models/complaintModel");
@@ -30,35 +30,41 @@ const storage = multer.diskStorage({
     }
 });
 const upload = multer({ storage: storage });
+
+// Session middleware
 app.use(session({
     secret: 'notsasecret',
     resave: false,
     saveUninitialized: true,
-    // cookie lasts for for 24 hours
-    cookie: {maxAge: 1000 * 60 * 60 * 24}
+    // cookie lasts for 24 hours
+    cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }));
 
 app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
 app.use(express.static('public'));
 app.use(flash());
 app.set('view engine', 'ejs');
 
+// Custom Middlewares
 const validateRegistration = (req, res, next) => {
-    const { name, telephoneNo, password } = req.body;
+    const { name, telephoneNo, password, confirmPassword } = req.body;
 
     if (!name || !telephoneNo || !password ) {
         req.flash('error', 'All fields are required.');
-        req.flash('formData', req.body)
-        return res.redirect('/register')
-
+        req.flash('formData', req.body);
+        return res.redirect('/register');
     }
     if (password.length < 6) {
         req.flash('error', 'Password should be at least 6 or more characters long');
         req.flash('formData', req.body); 
-        return res.redirect('/register'); // redirect to register with previous filled in formData if it fails
+        return res.redirect('/register');
     }
-    //If all validations pass, the next function is called, allowing the request to proceed to the
-    //next middleware function or route handler.
+    if (password !== confirmPassword) {
+        req.flash('error', 'Password and confirm password do not match');
+        req.flash('formData', req.body);
+        return res.redirect('/register');
+    }
     next();
 };
 
@@ -69,10 +75,10 @@ const checkAuthenticated = (req, res, next) => {
         req.flash('error', 'Please log in to view this resource');
         res.redirect('/login');
     }
-}
+};
 
 const checkAdmin = (req, res, next) => {
-    if (req.session.user.role === 'admin') {
+    if (req.session.user && req.session.user.role === 'admin') {
         return next();
     } else {
         req.flash('error', 'Access denied');
@@ -80,54 +86,60 @@ const checkAdmin = (req, res, next) => {
     }
 };
 
+// ==========================================
+// PUBLIC & AUTHENTICATION ROUTES
+// ==========================================
+
 app.get('/', (req, res) => {
     res.render('index', {
-    user: req.session.user, 
-    messages: req.flash('success') 
+        user: req.session.user, 
+        messages: req.flash('success') 
     });
 });
 
-// register routes
+// Register routes
 app.get('/register', (req, res) => {
     res.render('registerUser', {
-    user: req.session.user,
-    messages: req.flash('error'), 
-    formData: req.flash('formData')[0]
+        user: req.session.user,
+        messages: req.flash('error'), 
+        formData: req.flash('formData')[0]
     });
 });
-
 
 app.post('/register', validateRegistration, (req, res) => {
     const { password } = req.body;
     const name = req.body.name.trim();
     const telephoneNo = req.body.telephoneNo.trim();
 
-    const card_id = `${name[0].toUpperCase()}0${telephoneNo.substring(0, 3)}00`
+    const card_id = `${name[0].toUpperCase()}0${telephoneNo.substring(0, 3)}00`;
     
     const sql = 'INSERT INTO user (name, card_id, phone_number, password, points, role) VALUES (?, ?, ?, SHA1(?), ?, ?)';
-    db.query(sql, [name, card_id, telephoneNo , password, 0, 'customer'], (err, result) => {
+    db.query(sql, [name, card_id, telephoneNo, password, 0, 'customer'], (err, result) => {
         if (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                req.flash('error', 'A user with this Card ID already exists.');
+                return res.redirect('/register');
+            }
             throw err;
         }
-        console.log(result);
         req.flash('success', `Registration successful! Your card ID is ${card_id}`);
         res.redirect('/login');
     });
 });
 
-// login routes
+// Login routes
 app.get('/login', (req, res) => {
     res.render('login', {
         user: req.session.user,
         messages: req.flash('success'),
         errors: req.flash('error')
     });
-})
+});
 
 app.post('/login', (req, res) => {
-    const {password } = req.body;
+    const { password } = req.body;
     const card_id = req.body.card_id.trim();
-    // Validate email and password
+
     if (!card_id || !password) {
         req.flash('error', 'All fields are required.');
         return res.redirect('/login');
@@ -154,39 +166,262 @@ app.post('/login', (req, res) => {
                 res.redirect('/dashboard');
             }
         } else {
-            // Invalid credentials
             req.flash('error', 'Invalid card ID or password.');
             res.redirect('/login');
         }
     });
 });
 
-// menu routes
-app.get('/menu', (req, res) =>{
+// Menu routes
+app.get('/menu', (req, res) => {
     res.redirect('/menu/Asian');
-    }
-)
+});
 
-// default page is asian so /menu redirects to it
+// cant add a favourite category (food cant exist in 2 categories simultaneously)
+// so faourites tab is hardcoded into the foodNav
+// instead, fetch from a favourote table
+app.get('/menu/favourites', checkAuthenticated, (req, res) => {
+    getFoodCategoryCount((err, categoryCount) => {
+        if (err) throw err;
+
+        getUserFavourites(req.session.user.user_id, (err, favouriteMenuItems) => {
+            if (err) throw err;
+
+            getFavouritesCount(req.session.user.user_id, (err, favouriteCount) => {
+                if (err) throw err;
+
+                res.render('menu', {
+                    user: req.session.user,
+                    counts: categoryCount,
+                    activeCategory: 'Favourites',
+                    menuItems: favouriteMenuItems,
+                    favouriteCount
+                });
+
+            });
+        });
+    });
+});
+
 app.get('/menu/:category', checkAuthenticated, (req, res) => {
     const activeCategory = req.params.category;
     getFoodCategoryCount((err, categoryCount) => {
-        if (err) {
-            throw err;
-        }
+        if (err) throw err;
 
         getFoodByCategory(activeCategory, (err, menuItems) => {
-            if (err) {
-                throw err;
+            if (err) throw err;
+
+            getFavouritesCount(req.session.user.user_id, (err, favouriteCount) => {
+                if (err) throw err;
+
+                res.render('menu', {
+                    user: req.session.user,
+                    counts: categoryCount,
+                    activeCategory,
+                    menuItems,
+                    favouriteCount
+                });
+            });
+        });
+    });
+});
+
+// ==========================================
+// FEATURE ASSIGNMENT: CART & RESERVATIONS
+// ==========================================
+
+// 1. ADD TO CART (Session-based Cart)
+app.post('/add-to-cart/:id', checkAuthenticated, (req, res) => {
+    const foodId = parseInt(req.params.id);
+    const quantity = parseInt(req.body.quantity) || 1;
+
+    if (!req.session.cart) {
+        req.session.cart = [];
+    }
+
+    const existingIndex = req.session.cart.findIndex(item => item.foodId === foodId);
+    if (existingIndex > -1) {
+        req.session.cart[existingIndex].quantity += quantity;
+    } else {
+        req.session.cart.push({ foodId, quantity });
+    }
+
+    req.flash('success', 'Item added to cart.');
+    res.redirect('/cart');
+});
+
+// 2. VIEW CART (Server-side Total Calculation)
+app.get('/cart', checkAuthenticated, (req, res) => {
+    const cart = req.session.cart || [];
+    
+    if (cart.length === 0) {
+        return res.render('cart', { 
+            user: req.session.user, 
+            cartItems: [], 
+            total: "0.00",
+            messages: req.flash('success'),
+            errors: req.flash('error')
+        });
+    }
+
+    const ids = cart.map(item => item.foodId);
+    // fixed to match the real schema: table is menu_item, pk is menu_item_id
+    const sql = `SELECT * FROM menu_item WHERE menu_item_id IN (?)`;
+
+    db.query(sql, [ids], (err, results) => {
+        if (err) throw err;
+
+        let total = 0;
+        const cartItems = results.map(food => {
+            const itemInCart = cart.find(c => c.foodId === food.menu_item_id);
+            const itemTotal = food.price * itemInCart.quantity;
+            total += itemTotal;
+
+            return {
+                ...food,
+                quantity: itemInCart.quantity,
+                itemTotal: itemTotal.toFixed(2)
+            };
+        });
+
+        res.render('cart', {
+            user: req.session.user,
+            cartItems,
+            total: total.toFixed(2),
+            messages: req.flash('success'),
+            errors: req.flash('error')
+        });
+    });
+});
+
+// 3. CHECKOUT (INSERT INTO order & order_item)
+app.post('/checkout', checkAuthenticated, (req, res) => {
+    const userId = req.session.user.user_id;
+    const cart = req.session.cart || [];
+
+    if (cart.length === 0) {
+        req.flash('error', 'Your cart is empty.');
+        return res.redirect('/cart');
+    }
+
+    const ids = cart.map(item => item.foodId);
+    // fixed to match the real schema (menu_item / order.total / order_item.menu_item_id)
+    db.query(`SELECT * FROM menu_item WHERE menu_item_id IN (?)`, [ids], (err, items) => {
+        if (err) throw err;
+
+        let calculatedTotal = 0;
+        cart.forEach(cartItem => {
+            const food = items.find(f => f.menu_item_id === cartItem.foodId);
+            if (food) {
+                calculatedTotal += food.price * cartItem.quantity;
             }
-            res.render('menu', {
-                user: req.session.user, 
-                counts: categoryCount, 
-                activeCategory,
-                menuItems});
-        })
-    })
-})
+        });
+
+        // members earn 1 loyalty point per dollar spent
+        const pointsEarned = Math.floor(calculatedTotal);
+        const insertOrderSql = `INSERT INTO \`order\` (user_id, total, points_earned, status, order_type) VALUES (?, ?, ?, 'preparing', 'online')`;
+        db.query(insertOrderSql, [userId, calculatedTotal, pointsEarned], (err, result) => {
+            if (err) throw err;
+
+            const orderId = result.insertId;
+            const orderItemsData = cart.map(item => {
+                return [orderId, item.foodId, item.quantity];
+            });
+
+            const insertItemsSql = `INSERT INTO order_item (order_id, menu_item_id, quantity) VALUES ?`;
+            db.query(insertItemsSql, [orderItemsData], (err) => {
+                if (err) throw err;
+
+                // credit the points to the member's account
+                db.query('UPDATE user SET points = points + ? WHERE user_id = ?', [pointsEarned, userId], (err) => {
+                    if (err) throw err;
+                    req.session.user.points += pointsEarned; // keep the navbar pill in sync
+                    req.session.cart = []; // Clear cart after successful checkout
+                    req.flash('success', `Order placed successfully! You earned ${pointsEarned} points.`);
+                    res.redirect('/orders');
+                });
+            });
+        });
+    });
+});
+
+// 4. ORDER HISTORY (SELECT with JOINs)
+app.get('/orders', checkAuthenticated, (req, res) => {
+    const userId = req.session.user.user_id;
+
+    // fixed to the real schema, aliased so the view keeps its field names
+    const sql = `
+        SELECT
+            o.order_id,
+            o.total AS total_amount,
+            o.status,
+            o.created_at,
+            oi.quantity,
+            mi.price AS unit_price,
+            mi.name AS food_name
+        FROM \`order\` o
+        JOIN order_item oi ON o.order_id = oi.order_id
+        JOIN menu_item mi ON oi.menu_item_id = mi.menu_item_id
+        WHERE o.user_id = ?
+        ORDER BY o.created_at DESC
+    `;
+
+    db.query(sql, [userId], (err, results) => {
+        if (err) throw err;
+        res.render('orders', {
+            user: req.session.user,
+            orders: results,
+            messages: req.flash('success'),
+            errors: req.flash('error')
+        });
+    });
+});
+
+// 5. RESERVATIONS
+app.get('/reservations', checkAuthenticated, (req, res) => {
+    const userId = req.session.user.user_id;
+
+    // fixed to the real schema, aliased so the view keeps its field names
+    const sql = `
+        SELECT reservation_id,
+               reserve_date AS reservation_date,
+               reserve_time AS reservation_time,
+               pax AS party_size,
+               table_number, status
+        FROM reservation WHERE user_id = ? ORDER BY reserve_date DESC`;
+    db.query(sql, [userId], (err, results) => {
+        if (err) throw err;
+        res.render('reservations', {
+            user: req.session.user,
+            reservations: results,
+            messages: req.flash('success'),
+            errors: req.flash('error')
+        });
+    });
+});
+
+app.post('/reservations', checkAuthenticated, (req, res) => {
+    const userId = req.session.user.user_id;
+    const { reservation_date, reservation_time, party_size } = req.body;
+
+    if (!reservation_date || !reservation_time || !party_size) {
+        req.flash('error', 'All reservation fields are required.');
+        return res.redirect('/reservations');
+    }
+
+    // fixed to the real schema; bookings start as 'pending' so the manager
+    // can accept them and assign a table from the admin reservations queue
+    const sql = `INSERT INTO reservation (user_id, reserve_date, reserve_time, pax, status) VALUES (?, ?, ?, ?, 'pending')`;
+    db.query(sql, [userId, reservation_date, reservation_time, party_size], (err) => {
+        if (err) throw err;
+        req.flash('success', 'Reservation requested! The restaurant will confirm your table soon.');
+        res.redirect('/reservations');
+    });
+});
+
+// ==========================================
+// PROFILE & FAMILY MANAGEMENT ROUTES
+// ==========================================
 
 // ============================================================
 // Done by: Khaing Khant Zaw (Leon)
@@ -547,18 +782,12 @@ app.get('/admin/complaints/remove/:id', checkAuthenticated, checkAdmin, (req, re
 // profile route
 app.get('/profile', checkAuthenticated, (req, res) => {
     getUserById(req.session.user.user_id, (err, userInfo) => {
-        if (err) {
-            throw err;
-        }
+        if (err) throw err;
 
-        // primary_user_id NULL means this account IS the family owner (not a member under someone else)
         const isFamilyOwner = userInfo.primary_user_id === null;
 
-        // any family member's card_id shares the same prefix, so we can search from our own
         getFamilyMembers(userInfo.card_id, (err, familyMembers) => {
-            if (err) {
-                throw err;
-            }
+            if (err) throw err;
 
             const renderProfile = (relationshipTypes) => {
                 res.render('profile', {
@@ -572,13 +801,9 @@ app.get('/profile', checkAuthenticated, (req, res) => {
                 });
             };
 
-            // relationshipTypes only fills the "Add Family Member" dropdown, and only owners
-            // ever see that modal, so skip the extra query for non-owners
             if (isFamilyOwner) {
                 getRelationshipTypes((err, relationshipTypes) => {
-                    if (err) {
-                        throw err;
-                    }
+                    if (err) throw err;
                     renderProfile(relationshipTypes);
                 });
             } else {
@@ -588,7 +813,6 @@ app.get('/profile', checkAuthenticated, (req, res) => {
     });
 });
 
-// for user editing their own profile, card id and points cant be changed
 app.post('/profile', checkAuthenticated, (req, res) => {
     const name = req.body.name.trim();
     const phone_number = req.body.phone_number.trim();
@@ -599,21 +823,16 @@ app.post('/profile', checkAuthenticated, (req, res) => {
     }
 
     updateUser(req.session.user.user_id, { name, phone_number }, (err) => {
-        if (err) {
-            throw err;
-        }
+        if (err) throw err;
         req.session.user.name = name;
         req.flash('success', 'Profile updated successfully.');
         res.redirect('/profile');
     });
 });
 
-// family management routes
 app.post('/profile/family/add', checkAuthenticated, (req, res) => {
     getUserById(req.session.user.user_id, (err, userInfo) => {
-        if (err) {
-            throw err;
-        }
+        if (err) throw err;
 
         if (userInfo.primary_user_id !== null) {
             req.flash('error', 'Only the family owner can add family members.');
@@ -637,9 +856,7 @@ app.post('/profile/family/add', checkAuthenticated, (req, res) => {
             }
 
             addFamilyMember(userInfo.user_id, { card_id, name, phone_number, password, relationship_type_id }, (err) => {
-                if (err) {
-                    throw err;
-                }
+                if (err) throw err;
                 req.flash('success', `${name} was added to your family. Their card ID is ${card_id}`);
                 res.redirect('/profile');
             });
@@ -647,12 +864,9 @@ app.post('/profile/family/add', checkAuthenticated, (req, res) => {
     });
 });
 
-// edit family member (name, relationship, and optionally reset their password)
 app.post('/profile/family/:id/edit', checkAuthenticated, (req, res) => {
     getUserById(req.session.user.user_id, (err, userInfo) => {
-        if (err) {
-            throw err;
-        }
+        if (err) throw err;
 
         if (userInfo.primary_user_id !== null) {
             req.flash('error', 'Only the family owner can edit family members.');
@@ -669,39 +883,31 @@ app.post('/profile/family/:id/edit', checkAuthenticated, (req, res) => {
         }
 
         updateFamilyMember(req.params.id, userInfo.user_id, { name, relationship_type_id, password }, (err) => {
-            if (err) {
-                throw err;
-            }
+            if (err) throw err;
             req.flash('success', 'Family member updated.');
             res.redirect('/profile');
         });
     });
 });
 
-// delete family member
 app.post('/profile/family/:id/delete', checkAuthenticated, (req, res) => {
     getUserById(req.session.user.user_id, (err, userInfo) => {
-        if (err) {
-            throw err;
-        }
+        if (err) throw err;
 
-        // if the user is not the family owner, they cannot remove family members
         if (userInfo.primary_user_id !== null) {
             req.flash('error', 'Only the family owner can remove family members.');
             return res.redirect('/profile');
         }
 
         deleteFamilyMember(req.params.id, userInfo.user_id, (err) => {
-            if (err) {
-                throw err;
-            }
+            if (err) throw err;
             req.flash('success', 'Family member removed.');
             res.redirect('/profile');
         });
     });
 });
 
-// destroys the session
+// Destroys the session
 app.get('/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/');

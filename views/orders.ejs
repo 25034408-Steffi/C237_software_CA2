@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order History | Supper Club</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <%- include("partials/navbar") %>
+
+  <div class="container mt-4 mb-5">
+    <div class="d-flex align-items-center mb-3">
+        <i class="bi bi-receipt me-2" style="font-size:2rem; color: var(--terracotta);"></i>
+        <h1 class="menu-text card-title mb-0" style="font-size:1.8rem;">Order History</h1>
+    </div>
+
+    <% if (errors && errors.length > 0) { %>
+        <div class="alert alert-danger py-2 px-3 my-1">
+            <% errors.forEach(function(error) { %>
+                <p class="mb-0"><%= error %></p>
+            <% }); %>
+        </div>
+    <% } %>
+    <% if (messages && messages.length > 0) { %>
+        <div class="alert alert-success py-2 px-3 my-1">
+            <% messages.forEach(function(message) { %>
+                <p class="mb-0"><%= message %></p>
+            <% }); %>
+        </div>
+    <% } %>
+
+    <% if (orders.length === 0) { %>
+        <div class="card food-card p-4 text-center mt-3">
+            <p class="menu-text fs-5 mb-3">You haven't placed any orders yet.</p>
+            <div>
+                <a href="/menu" class="btn btn-primary"><i class="bi bi-bag-plus me-1"></i> Order Now</a>
+            </div>
+        </div>
+    <% } else { %>
+        <div class="table-responsive mt-3">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th class="menu-text">Order #</th>
+                        <th class="menu-text">Item</th>
+                        <th class="menu-text">Qty</th>
+                        <th class="menu-text">Unit Price</th>
+                        <th class="menu-text">Status</th>
+                        <th class="menu-text">Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% orders.forEach(order => { %>
+                        <tr>
+                            <td class="menu-text">#<%= order.order_id %></td>
+                            <td class="menu-text"><strong><%= order.food_name %></strong></td>
+                            <td class="menu-text"><%= order.quantity %></td>
+                            <td class="menu-text">$<%= Number(order.unit_price).toFixed(2) %></td>
+                            <td><span class="badge bg-warning text-dark"><%= order.status %></span></td>
+                            <td class="menu-text"><%= new Date(order.created_at).toLocaleDateString() %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+    <% } %>
+  </div>
+</body>
+</html>

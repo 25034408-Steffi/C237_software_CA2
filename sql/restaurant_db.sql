@@ -219,6 +219,27 @@ CREATE TABLE IF NOT EXISTS `c237_026_team5_ca2`.`menu_item_has_size` (
 ENGINE = InnoDB;
 
 
+-- -----------------------------------------------------
+-- Table `c237_026_team5_ca2`.`favourite`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `c237_026_team5_ca2`.`favourite` (
+  `user_id` INT NOT NULL,
+  `menu_item_id` INT NOT NULL,
+  PRIMARY KEY (`user_id`, `menu_item_id`),
+  INDEX `fk_favourite_menu_item1_idx` (`menu_item_id` ASC) VISIBLE,
+  CONSTRAINT `fk_favourite_user1`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `c237_026_team5_ca2`.`user` (`user_id`)
+    ON DELETE CASCADE
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_favourite_menu_item1`
+    FOREIGN KEY (`menu_item_id`)
+    REFERENCES `c237_026_team5_ca2`.`menu_item` (`menu_item_id`)
+    ON DELETE CASCADE
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
