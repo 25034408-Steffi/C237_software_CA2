@@ -131,7 +131,7 @@
                         </small>
                       <% } %>
                       <a href="/favourites/toggle/<%= shownDishes[i].menu_item_id %>?category=<%= encodeURIComponent(activeCategory) %>"
-                         class="text-decoration-none fs-5" title="Add or remove favourite">
+                         class="fav-toggle text-decoration-none fs-5" title="Add or remove favourite">
                         <i class="bi <%= shownDishes[i].is_fav ? 'bi-heart-fill text-danger' : 'bi-heart text-secondary' %>"></i>
                       </a>
                     </div>
@@ -431,5 +431,6 @@
     if (modeRestaurant) modeRestaurant.addEventListener('change', updateMode);
     if (modeOnline) modeOnline.addEventListener('change', updateMode);
   </script>
+  <script src="/favourites.js"></script>
 </body>
 </html>

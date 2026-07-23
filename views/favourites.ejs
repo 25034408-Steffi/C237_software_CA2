@@ -14,13 +14,11 @@
     <a href="/dashboard" class="btn btn-sm btn-outline-secondary mb-3"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
     <h2><i class="bi bi-heart-fill text-danger"></i> My Favourites</h2>
 
-    <% if (favourites.length === 0) { %>
-      <div class="alert alert-info mt-3">
-        No favourites yet - tap the <i class="bi bi-heart"></i> on any dish in the dashboard to save it here.
-      </div>
-    <% } %>
+    <div id="noFavAlert" class="alert alert-info mt-3 <%= favourites.length === 0 ? '' : 'd-none' %>">
+      No favourites yet - tap the <i class="bi bi-heart"></i> on any dish in the dashboard to save it here.
+    </div>
 
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mt-1">
+    <div id="favouritesGrid" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mt-1">
       <% for (let i = 0; i < favourites.length; i++) { %>
         <div class="col">
           <div class="card h-100 shadow-sm food-card">
@@ -28,7 +26,7 @@
               <div class="d-flex justify-content-between align-items-start">
                 <h6 class="card-title mb-1"><%= favourites[i].name %></h6>
                 <a href="/favourites/toggle/<%= favourites[i].menu_item_id %>?back=favourites"
-                   class="text-decoration-none fs-5" title="Remove favourite">
+                   class="fav-toggle text-decoration-none fs-5" title="Remove favourite" data-remove-on-unfav="true">
                   <i class="bi bi-heart-fill text-danger"></i>
                 </a>
               </div>
@@ -41,5 +39,6 @@
       <% } %>
     </div>
   </div>
+  <script src="/favourites.js"></script>
 </body>
 </html>
