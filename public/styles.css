@@ -485,3 +485,30 @@ form .login-text, form .register-text {
 /* dish photos on the member pages */
 .dish-photo    { height: 150px; object-fit: cover; }
 .dish-photo-lg { height: 260px; object-fit: cover; }
+
+/* big order-status tracker on the dashboard */
+.order-thumb {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+}
+.status-circle {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+.step-done     { background-color: #198754; color: #fff; }
+.step-active   { background-color: #fd7e14; color: #fff; box-shadow: 0 0 0 4px rgba(253, 126, 20, 0.25); }
+.step-upcoming { background-color: #f1f1f1; color: #9a9a9a; }
+.status-connector {
+    flex-grow: 1;
+    height: 3px;
+    background-color: #e3e3e3;
+    margin-top: 20px;
+    min-width: 12px;
+}
+.connector-done { background-color: #198754; }

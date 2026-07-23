@@ -174,34 +174,100 @@
           </div>
         </div>
 
-        <%# order status card - tap an order to open its tracker %>
-        <div class="card shadow-sm mb-3">
-          <div class="card-body">
-            <h6 class="mb-2"><i class="bi bi-truck text-danger"></i> Order Status</h6>
-            <% if (!myOrders || myOrders.length === 0) { %>
-              <p class="text-muted small mb-0">No orders yet - tap Order Now to get started!</p>
-            <% } else { %>
-              <% const statusBadges = { preparing: 'bg-warning text-dark', ready: 'bg-primary', received: 'bg-success', finished: 'bg-success' }; %>
-              <% for (let i = 0; i < myOrders.length; i++) { %>
-                <a href="/order-status/<%= myOrders[i].order_id %>" class="text-decoration-none text-dark">
-                  <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2 order-status-row">
-                    <div>
-                      <strong>#<%= myOrders[i].order_id %></strong>
-                      <small class="text-muted">
-                        <%= myOrders[i].order_type === 'online' ? 'Online' : (myOrders[i].table_number ? 'Table ' + myOrders[i].table_number : 'Dine-in') %>
-                        · $<%= myOrders[i].total %>
-                      </small>
-                      <% if (myOrders[i].impatient && myOrders[i].status !== 'finished') { %>
-                        <i class="bi bi-lightning-charge-fill text-danger" title="Rush requested"></i>
-                      <% } %>
+        <%# Order Status: ONLY the member's current order, big, with the
+            progress tracker (modelled on the delivery-app reference) %>
+        <% if (activeOrder) { %>
+          <% const online = activeOrder.order_type === 'online';
+             const steps = [
+               { label: 'Order Confirmed', icon: 'bi-check-lg' },
+               { label: 'Preparing',       icon: 'bi-fire' },
+               { label: 'Ready',           icon: online ? 'bi-bag-check' : 'bi-bell' },
+               { label: online ? 'Received' : 'Served', icon: 'bi-emoji-smile' }
+             ];
+             const currentStep = activeOrder.status === 'preparing' ? 1 : 2; %>
+          <div class="card shadow-sm mb-3 order-status-big">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Order Status</h5>
+                <span class="badge bg-danger-subtle text-danger border border-danger">Order #<%= activeOrder.order_id %></span>
+              </div>
+
+              <div class="d-flex gap-3 align-items-center mb-3">
+                <% if (activeOrderItems.length > 0) { %>
+                  <img src="/images/<%= activeOrderItems[0].image %>" class="rounded order-thumb"
+                       alt="" onerror="this.style.display='none'">
+                <% } %>
+                <div class="flex-grow-1">
+                  <strong><%= activeOrderItems.map(it => it.name).join(', ').slice(0, 60) %></strong><br>
+                  <small class="text-muted">
+                    <i class="bi <%= online ? 'bi-phone' : 'bi-shop' %>"></i>
+                    <%= online ? 'Online delivery' : (activeOrder.table_number ? 'Dine-in · Table ' + activeOrder.table_number : 'Dine-in') %>
+                  </small>
+                </div>
+                <div class="text-end">
+                  <% if (online && estimate) { %>
+                    <small class="text-muted">Estimated</small><br>
+                    <strong class="text-danger fs-5"><%= estimate %></strong>
+                  <% } else if (!online && activeOrder.table_number) { %>
+                    <strong class="text-danger fs-4">T<%= activeOrder.table_number %></strong>
+                  <% } %>
+                </div>
+              </div>
+
+              <!-- progress tracker -->
+              <div class="d-flex align-items-start justify-content-between mb-3">
+                <% for (let s = 0; s < steps.length; s++) { %>
+                  <% const done = s < currentStep; const active = s === currentStep; %>
+                  <div class="text-center flex-fill status-step">
+                    <div class="status-circle mx-auto <%= done ? 'step-done' : (active ? 'step-active' : 'step-upcoming') %>">
+                      <i class="bi <%= done ? 'bi-check-lg' : steps[s].icon %>"></i>
                     </div>
-                    <span class="badge <%= statusBadges[myOrders[i].status] %>"><%= myOrders[i].status %></span>
+                    <small class="d-block mt-1 <%= active ? 'text-danger fw-bold' : (done ? '' : 'text-muted') %>"><%= steps[s].label %></small>
+                    <% if (s === 0) { %>
+                      <small class="text-muted"><%= activeOrder.created_at.toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit' }) %></small>
+                    <% } else if (!done && !active) { %>
+                      <small class="text-muted">Upcoming</small>
+                    <% } %>
                   </div>
+                  <% if (s < steps.length - 1) { %>
+                    <div class="status-connector <%= s < currentStep ? 'connector-done' : '' %>"></div>
+                  <% } %>
+                <% } %>
+              </div>
+
+              <div class="alert alert-warning py-2 px-3 small mb-3">
+                <i class="bi bi-bell"></i>
+                <%= activeOrder.status === 'preparing'
+                      ? 'The restaurant is preparing your order with care.'
+                      : (online ? 'Your order is on the way - enjoy!' : 'Your food is ready!') %>
+              </div>
+
+              <div class="d-flex gap-2">
+                <a href="/order-status/<%= activeOrder.order_id %>" class="btn btn-outline-secondary btn-sm flex-fill">
+                  <i class="bi bi-receipt"></i> View Details
                 </a>
-              <% } %>
-            <% } %>
+                <% if (online) { %>
+                  <form method="POST" action="/order-status/<%= activeOrder.order_id %>/received" class="flex-fill d-grid">
+                    <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check2-circle"></i> Received</button>
+                  </form>
+                <% } else if (!activeOrder.impatient) { %>
+                  <form method="POST" action="/order-status/<%= activeOrder.order_id %>/rush" class="flex-fill d-grid">
+                    <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-lightning-charge-fill"></i> Rush My Order</button>
+                  </form>
+                <% } else { %>
+                  <span class="btn btn-outline-danger btn-sm flex-fill disabled"><i class="bi bi-lightning-charge-fill"></i> Rush requested</span>
+                <% } %>
+              </div>
+            </div>
           </div>
-        </div>
+        <% } else { %>
+          <div class="card shadow-sm mb-3">
+            <div class="card-body">
+              <h6 class="mb-1"><i class="bi bi-truck text-danger"></i> Order Status</h6>
+              <p class="text-muted small mb-0">No active order right now - tap Order Now to get started!</p>
+            </div>
+          </div>
+        <% } %>
 
         <% if (nextBooking) { %>
           <div class="card shadow-sm border-success mb-3">

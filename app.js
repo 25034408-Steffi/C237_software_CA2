@@ -28,7 +28,7 @@ const DRINK_SIZES = { small: { id: 3, label: 'Small', price: 3 }, large: { id: 4
 const PASTA_TYPES = ['Spaghetti', 'Fusilli', 'Penne', 'Linguine'];
 const { getDashboardCounts } = require("./models/adminModel");
 const { getOrdersByType, updateOrderStatus, getOrderById, getOrderItems,
-        getOrdersByUser, getOrderForUser, markReceived, rushOrder } = require("./models/orderModel");
+        getOrdersByUser, getActiveOrderByUser, getOrderForUser, markReceived, rushOrder } = require("./models/orderModel");
 const { getReservationsByStatus, acceptReservation, addWalkInReservation, removeReservation,
         getReservationsByUser, addMemberReservation, cancelOwnReservation } = require("./models/reservationModel");
 
@@ -494,16 +494,32 @@ app.get('/dashboard', checkAuthenticated, (req, res) => {
                 const tier = req.session.user.card_tier || 'basic';
                 const discountRate = TIER_DISCOUNT[tier] || 0;
 
-                // recent orders for the Order Status card under the points
-                getOrdersByUser(req.session.user.user_id, (err5, myOrders) => {
+                // only the member's CURRENT order shows on the dashboard -
+                // if you ordered from table 21, this is that order and nothing else
+                getActiveOrderByUser(req.session.user.user_id, (err5, activeOrder) => {
                     if (err5) throw err5;
-                    res.render('memberDashboard', {
-                        user: req.session.user, categories, activeCategory, dishes, search, nextBooking,
-                        cartItems, cartSubtotal, tier, discountRate, myOrders,
-                        cartCount: cart.reduce((n, c) => n + c.quantity, 0),
-                        orderMode: req.query.order === '1',
-                        messages: req.flash('success'), errors: req.flash('error')
-                    });
+
+                    const estimates = { saver: '45-50 min', priority: '15-20 min', standard: '20-35 min' };
+                    const renderPage = (activeOrderItems) => {
+                        res.render('memberDashboard', {
+                            user: req.session.user, categories, activeCategory, dishes, search, nextBooking,
+                            cartItems, cartSubtotal, tier, discountRate,
+                            activeOrder, activeOrderItems,
+                            estimate: activeOrder && activeOrder.delivery_option ? estimates[activeOrder.delivery_option] : null,
+                            cartCount: cart.reduce((n, c) => n + c.quantity, 0),
+                            orderMode: req.query.order === '1',
+                            messages: req.flash('success'), errors: req.flash('error')
+                        });
+                    };
+
+                    if (activeOrder) {
+                        getOrderItems(activeOrder.order_id, (err6, activeOrderItems) => {
+                            if (err6) throw err6;
+                            renderPage(activeOrderItems);
+                        });
+                    } else {
+                        renderPage([]);
+                    }
                 })
             })
         })

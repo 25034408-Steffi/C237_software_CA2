@@ -51,7 +51,7 @@ function getOrderItems(orderId, callback) {
     // unit_price is the price actually charged (with size and add-ons);
     // older rows fall back to the menu price
     const sql = `
-    SELECT oi.quantity, mi.name, oi.comment,
+    SELECT oi.quantity, mi.name, mi.image, oi.comment,
            COALESCE(oi.unit_price, mi.price) AS price, c.name AS category,
            (oi.quantity * COALESCE(oi.unit_price, mi.price)) AS line_total
     FROM order_item oi
@@ -86,6 +86,23 @@ function getOrdersByUser(userId, callback) {
     })
 }
 
+// ONLY the member's current order (latest still being prepared / ready).
+// Finished and received orders never show here - they live in order history.
+function getActiveOrderByUser(userId, callback) {
+    const sql = `
+    SELECT order_id, total, status, order_type, impatient, table_number, delivery_option, created_at
+    FROM \`order\`
+    WHERE user_id = ? AND status IN ('preparing', 'ready')
+    ORDER BY created_at DESC, order_id DESC
+    LIMIT 1`
+    db.query(sql, [userId], (err, results) => {
+        if (err) {
+            return callback(err)
+        }
+        callback(null, results[0])
+    })
+}
+
 // one order, but only if it belongs to this member (stops url guessing)
 function getOrderForUser(orderId, userId, callback) {
     const sql = `
@@ -115,4 +132,4 @@ function rushOrder(orderId, userId, callback) {
 }
 
 module.exports = {getOrdersByType, updateOrderStatus, getOrderById, getOrderItems,
-                  getOrdersByUser, getOrderForUser, markReceived, rushOrder}
+                  getOrdersByUser, getActiveOrderByUser, getOrderForUser, markReceived, rushOrder}
