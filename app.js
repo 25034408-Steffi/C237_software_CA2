@@ -174,12 +174,15 @@ app.post('/login', (req, res) => {
 
 // Menu routes
 app.get('/menu', (req, res) => {
+    if (req.session.user) {
+        return res.redirect('/dashboard');
+    }
     res.redirect('/menu/Asian');
 });
 
 // cant add a favourite category (food cant exist in 2 categories simultaneously)
-// so faourites tab is hardcoded into the foodNav
-// instead, fetch from a favourote table
+// so favourites tab is hardcoded into the foodNav
+// instead, fetch from a favourite table
 app.get('/menu/favourites', checkAuthenticated, (req, res) => {
     getFoodCategoryCount((err, categoryCount) => {
         if (err) throw err;
