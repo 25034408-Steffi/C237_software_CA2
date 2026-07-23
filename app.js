@@ -1,25 +1,35 @@
 const express = require('express');
 const session = require('express-session');
 const flash = require('connect-flash');
+const multer = require('multer');
 
 const app = express();
 const db = require('./database');
-const { 
-    getFoodCategoryCount, 
-    getFoodByCategory, 
-    getUserFavourites,
-    getFavouritesCount
-} = require("./models/foodModel");
-const { 
-    getUserById, 
-    updateUser, 
-    getFamilyMembers, 
-    getRelationshipTypes, 
-    generateFamilyCardId, 
-    addFamilyMember, 
-    updateFamilyMember, 
-    deleteFamilyMember 
-} = require("./models/userModel");
+const { getFoodCategoryCount, getFoodByCategory, getUserFavourites, getFavouritesCount,
+        getAllMenuItems, getMenuItemById,
+        getAllCategories, insertMenuItem, updateMenuItem, deleteMenuItem, toggleAvailability,
+        getDishesForMember, getFavourites, toggleFavourite, getRedeemableItems } = require("./models/foodModel");
+const { addComplaint, getAllComplaints, removeComplaint } = require("./models/complaintModel");
+const { getUserById, updateUser, getFamilyMembers, getRelationshipTypes, generateFamilyCardId, addFamilyMember, updateFamilyMember, deleteFamilyMember,
+        getAllMembers, getMemberById, getMemberSpending, findMemberByCardId } = require("./models/userModel");
+const { getDashboardCounts } = require("./models/adminModel");
+const { getOrdersByType, updateOrderStatus, getOrderById, getOrderItems } = require("./models/orderModel");
+const { getReservationsByStatus, acceptReservation, addWalkInReservation, removeReservation,
+        getReservationsByUser, addMemberReservation, cancelOwnReservation } = require("./models/reservationModel");
+
+// ============================================================
+// Done by: Khaing Khant Zaw (Leon)
+// multer handles the menu item image uploads (L18)
+// ============================================================
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'public/images'); // directory to save uploaded files
+    },
+    filename: (req, file, cb) => {
+        cb(null, file.originalname);
+    }
+});
+const upload = multer({ storage: storage });
 
 // Session middleware
 app.use(session({
@@ -134,19 +144,27 @@ app.post('/login', (req, res) => {
         req.flash('error', 'All fields are required.');
         return res.redirect('/login');
     }
-
+    // members log in with their card ID; the admin logs in with their name (same form).
+    // session only stores non-sensitive columns (no password)
     const sql = `
     SELECT user_id, card_id, name, role, points
     FROM user
-    WHERE card_id = ? AND password = SHA1(?)`;
+    WHERE (card_id = ? OR (name = ? AND role = 'admin')) AND password = SHA1(?)`;
 
-    db.query(sql, [card_id, password], (err, results) => {
+    db.query(sql, [card_id, card_id, password], (err, results) => {
         if (err) {
             throw err;
         }
         if (results.length > 0) {
-            req.session.user = results[0];
-            res.redirect('/menu');
+            // Successful login
+            req.session.user = results[0]; // store user in session
+            // role-based redirect - Khaing Khant Zaw (Leon)
+            // same login form for everyone; role decides where they land
+            if (req.session.user.role === 'admin') {
+                res.redirect('/admin');
+            } else {
+                res.redirect('/dashboard');
+            }
         } else {
             req.flash('error', 'Invalid card ID or password.');
             res.redirect('/login');
@@ -247,14 +265,15 @@ app.get('/cart', checkAuthenticated, (req, res) => {
     }
 
     const ids = cart.map(item => item.foodId);
-    const sql = `SELECT * FROM food WHERE id IN (?)`;
+    // fixed to match the real schema: table is menu_item, pk is menu_item_id
+    const sql = `SELECT * FROM menu_item WHERE menu_item_id IN (?)`;
 
     db.query(sql, [ids], (err, results) => {
         if (err) throw err;
 
         let total = 0;
         const cartItems = results.map(food => {
-            const itemInCart = cart.find(c => c.foodId === food.id);
+            const itemInCart = cart.find(c => c.foodId === food.menu_item_id);
             const itemTotal = food.price * itemInCart.quantity;
             total += itemTotal;
 
@@ -286,34 +305,41 @@ app.post('/checkout', checkAuthenticated, (req, res) => {
     }
 
     const ids = cart.map(item => item.foodId);
-    db.query(`SELECT * FROM food WHERE id IN (?)`, [ids], (err, items) => {
+    // fixed to match the real schema (menu_item / order.total / order_item.menu_item_id)
+    db.query(`SELECT * FROM menu_item WHERE menu_item_id IN (?)`, [ids], (err, items) => {
         if (err) throw err;
 
         let calculatedTotal = 0;
         cart.forEach(cartItem => {
-            const food = items.find(f => f.id === cartItem.foodId);
+            const food = items.find(f => f.menu_item_id === cartItem.foodId);
             if (food) {
                 calculatedTotal += food.price * cartItem.quantity;
             }
         });
 
-        const insertOrderSql = `INSERT INTO \`order\` (user_id, total_amount, status) VALUES (?, ?, 'Pending')`;
-        db.query(insertOrderSql, [userId, calculatedTotal], (err, result) => {
+        // members earn 1 loyalty point per dollar spent
+        const pointsEarned = Math.floor(calculatedTotal);
+        const insertOrderSql = `INSERT INTO \`order\` (user_id, total, points_earned, status, order_type) VALUES (?, ?, ?, 'preparing', 'online')`;
+        db.query(insertOrderSql, [userId, calculatedTotal, pointsEarned], (err, result) => {
             if (err) throw err;
 
             const orderId = result.insertId;
             const orderItemsData = cart.map(item => {
-                const food = items.find(f => f.id === item.foodId);
-                return [orderId, item.foodId, item.quantity, food.price];
+                return [orderId, item.foodId, item.quantity];
             });
 
-            const insertItemsSql = `INSERT INTO order_item (order_id, food_id, quantity, price) VALUES ?`;
+            const insertItemsSql = `INSERT INTO order_item (order_id, menu_item_id, quantity) VALUES ?`;
             db.query(insertItemsSql, [orderItemsData], (err) => {
                 if (err) throw err;
 
-                req.session.cart = []; // Clear cart after successful checkout
-                req.flash('success', 'Order placed successfully!');
-                res.redirect('/orders');
+                // credit the points to the member's account
+                db.query('UPDATE user SET points = points + ? WHERE user_id = ?', [pointsEarned, userId], (err) => {
+                    if (err) throw err;
+                    req.session.user.points += pointsEarned; // keep the navbar pill in sync
+                    req.session.cart = []; // Clear cart after successful checkout
+                    req.flash('success', `Order placed successfully! You earned ${pointsEarned} points.`);
+                    res.redirect('/orders');
+                });
             });
         });
     });
@@ -323,18 +349,19 @@ app.post('/checkout', checkAuthenticated, (req, res) => {
 app.get('/orders', checkAuthenticated, (req, res) => {
     const userId = req.session.user.user_id;
 
+    // fixed to the real schema, aliased so the view keeps its field names
     const sql = `
-        SELECT 
-            o.id AS order_id, 
-            o.total_amount, 
-            o.status, 
+        SELECT
+            o.order_id,
+            o.total AS total_amount,
+            o.status,
             o.created_at,
-            oi.quantity, 
-            oi.price AS unit_price,
-            f.name AS food_name
+            oi.quantity,
+            mi.price AS unit_price,
+            mi.name AS food_name
         FROM \`order\` o
-        JOIN order_item oi ON o.id = oi.order_id
-        JOIN food f ON oi.food_id = f.id
+        JOIN order_item oi ON o.order_id = oi.order_id
+        JOIN menu_item mi ON oi.menu_item_id = mi.menu_item_id
         WHERE o.user_id = ?
         ORDER BY o.created_at DESC
     `;
@@ -354,7 +381,14 @@ app.get('/orders', checkAuthenticated, (req, res) => {
 app.get('/reservations', checkAuthenticated, (req, res) => {
     const userId = req.session.user.user_id;
 
-    const sql = `SELECT * FROM reservation WHERE user_id = ? ORDER BY reservation_date DESC`;
+    // fixed to the real schema, aliased so the view keeps its field names
+    const sql = `
+        SELECT reservation_id,
+               reserve_date AS reservation_date,
+               reserve_time AS reservation_time,
+               pax AS party_size,
+               table_number, status
+        FROM reservation WHERE user_id = ? ORDER BY reserve_date DESC`;
     db.query(sql, [userId], (err, results) => {
         if (err) throw err;
         res.render('reservations', {
@@ -375,10 +409,12 @@ app.post('/reservations', checkAuthenticated, (req, res) => {
         return res.redirect('/reservations');
     }
 
-    const sql = `INSERT INTO reservation (user_id, reservation_date, reservation_time, party_size, status) VALUES (?, ?, ?, ?, 'Confirmed')`;
+    // fixed to the real schema; bookings start as 'pending' so the manager
+    // can accept them and assign a table from the admin reservations queue
+    const sql = `INSERT INTO reservation (user_id, reserve_date, reserve_time, pax, status) VALUES (?, ?, ?, ?, 'pending')`;
     db.query(sql, [userId, reservation_date, reservation_time, party_size], (err) => {
         if (err) throw err;
-        req.flash('success', 'Reservation confirmed!');
+        req.flash('success', 'Reservation requested! The restaurant will confirm your table soon.');
         res.redirect('/reservations');
     });
 });
@@ -387,6 +423,363 @@ app.post('/reservations', checkAuthenticated, (req, res) => {
 // PROFILE & FAMILY MANAGEMENT ROUTES
 // ==========================================
 
+// ============================================================
+// Done by: Khaing Khant Zaw (Leon)
+// Member dashboard routes: dashboard with categories + search,
+// favourites, book a table, complaints, redeem catalogue
+// ============================================================
+
+// member home: first category shown by default, or search results
+app.get('/dashboard', checkAuthenticated, (req, res) => {
+    const search = (req.query.search || '').trim();
+    getAllCategories((err, categories) => {
+        if (err) throw err;
+        // default to the first category (e.g. Asian) when none picked
+        const activeCategory = req.query.category || (categories.length > 0 ? categories[0].name : '');
+        getDishesForMember(req.session.user.user_id, activeCategory, search, (err2, dishes) => {
+            if (err2) throw err2;
+            // show the member's next confirmed booking as a banner
+            getReservationsByUser(req.session.user.user_id, (err3, reservations) => {
+                if (err3) throw err3;
+                const nextBooking = reservations.find(r => r.status === 'upcoming');
+                res.render('memberDashboard', {
+                    user: req.session.user, categories, activeCategory, dishes, search, nextBooking,
+                    messages: req.flash('success')
+                });
+            })
+        })
+    })
+})
+
+// one heart button adds or removes a favourite, then returns to where you were
+app.get('/favourites/toggle/:id', checkAuthenticated, (req, res) => {
+    toggleFavourite(req.session.user.user_id, req.params.id, (err) => {
+        if (err) throw err;
+        if (req.query.back === 'favourites') {
+            res.redirect('/favourites');
+        } else {
+            res.redirect('/dashboard?category=' + encodeURIComponent(req.query.category || ''));
+        }
+    })
+})
+
+app.get('/favourites', checkAuthenticated, (req, res) => {
+    getFavourites(req.session.user.user_id, (err, favourites) => {
+        if (err) throw err;
+        res.render('favourites', { user: req.session.user, favourites });
+    })
+})
+
+// book a table: request goes in as pending for the manager to accept
+app.get('/book-table', checkAuthenticated, (req, res) => {
+    getReservationsByUser(req.session.user.user_id, (err, reservations) => {
+        if (err) throw err;
+        res.render('bookTable', {
+            user: req.session.user, reservations,
+            messages: req.flash('success'), errors: req.flash('error')
+        });
+    })
+})
+
+app.post('/book-table', checkAuthenticated, (req, res) => {
+    const { reserve_date, reserve_time, pax } = req.body;
+    if (!reserve_date || !reserve_time || !pax) {
+        req.flash('error', 'Date, time and number of people are required.');
+        return res.redirect('/book-table');
+    }
+    // no bookings in the past
+    if (reserve_date < new Date().toISOString().slice(0, 10)) {
+        req.flash('error', 'The reservation date cannot be in the past.');
+        return res.redirect('/book-table');
+    }
+    addMemberReservation(req.session.user.user_id, reserve_date, reserve_time, pax, (err) => {
+        if (err) throw err;
+        req.flash('success', 'Reservation requested! The restaurant will confirm your table soon.');
+        res.redirect('/book-table');
+    })
+})
+
+app.get('/book-table/cancel/:id', checkAuthenticated, (req, res) => {
+    cancelOwnReservation(req.params.id, req.session.user.user_id, (err) => {
+        if (err) throw err;
+        req.flash('success', 'Reservation cancelled.');
+        res.redirect('/book-table');
+    })
+})
+
+// complaints / suggestions
+app.get('/complain', checkAuthenticated, (req, res) => {
+    res.render('complain', { user: req.session.user, messages: req.flash('success'), errors: req.flash('error') });
+})
+
+app.post('/complain', checkAuthenticated, (req, res) => {
+    const topic = req.body.topic;
+    const message = (req.body.message || '').trim();
+    if (!topic || !message) {
+        req.flash('error', 'Please pick a topic and write your feedback.');
+        return res.redirect('/complain');
+    }
+    addComplaint(req.session.user.user_id, topic, message, (err) => {
+        if (err) throw err;
+        req.flash('success', 'Thank you! The manager will review your feedback.');
+        res.redirect('/complain');
+    })
+})
+
+// what your points can get you (redeeming happens at checkout)
+app.get('/redeem', checkAuthenticated, (req, res) => {
+    getRedeemableItems((err, items) => {
+        if (err) throw err;
+        res.render('redeem', { user: req.session.user, items });
+    })
+})
+
+// ============================================================
+// Done by: Khaing Khant Zaw (Leon)
+// Admin routes: dashboard, manage menu + 86 list, orders,
+// members & spending, reservations, complaints
+// ============================================================
+app.get('/admin', checkAuthenticated, checkAdmin, (req, res) => {
+    getDashboardCounts((err, counts) => {
+        if (err) {
+            throw err;
+        }
+        res.render('adminDashboard', { user: req.session.user, counts });
+    })
+})
+
+// manage menu: plain list of every item (not the customer card view)
+app.get('/admin/menu', checkAuthenticated, checkAdmin, (req, res) => {
+    getAllMenuItems(false, (err, items) => {
+        if (err) throw err;
+        res.render('adminMenu', {
+            user: req.session.user, items, only86: false,
+            messages: req.flash('success'), errors: req.flash('error')
+        });
+    })
+})
+
+// the 86 list: same page but only sold-out items
+app.get('/admin/menu/86', checkAuthenticated, checkAdmin, (req, res) => {
+    getAllMenuItems(true, (err, items) => {
+        if (err) throw err;
+        res.render('adminMenu', {
+            user: req.session.user, items, only86: true,
+            messages: req.flash('success'), errors: req.flash('error')
+        });
+    })
+})
+
+app.get('/admin/menu/add', checkAuthenticated, checkAdmin, (req, res) => {
+    getAllCategories((err, categories) => {
+        if (err) throw err;
+        res.render('adminMenuForm', { user: req.session.user, categories, item: null, errors: req.flash('error') });
+    })
+})
+
+app.post('/admin/menu/add', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => {
+    const { name, category_id, description, price } = req.body;
+    if (!name || !category_id || !description || !price) {
+        req.flash('error', 'All fields are required.');
+        return res.redirect('/admin/menu/add');
+    }
+    const item = {
+        category_id, name, description, price,
+        image: req.file ? req.file.filename : 'placeholder.jpg',
+        available: req.body.available ? 1 : 0
+    };
+    insertMenuItem(item, (err) => {
+        if (err) throw err;
+        req.flash('success', `Added "${name}" to the menu.`);
+        res.redirect('/admin/menu');
+    })
+})
+
+app.get('/admin/menu/edit/:id', checkAuthenticated, checkAdmin, (req, res) => {
+    getMenuItemById(req.params.id, (err, item) => {
+        if (err) throw err;
+        if (!item) return res.status(404).send('Menu item not found');
+        getAllCategories((err2, categories) => {
+            if (err2) throw err2;
+            res.render('adminMenuForm', { user: req.session.user, categories, item, errors: req.flash('error') });
+        })
+    })
+})
+
+app.post('/admin/menu/edit/:id', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => {
+    const { name, category_id, description, price } = req.body;
+    let image = req.body.currentImage;   // keep the old picture...
+    if (req.file) {
+        image = req.file.filename;       // ...unless a new one was uploaded
+    }
+    const item = { category_id, name, description, price, image, available: req.body.available ? 1 : 0 };
+    updateMenuItem(req.params.id, item, (err) => {
+        if (err) throw err;
+        req.flash('success', `Updated "${name}".`);
+        res.redirect('/admin/menu');
+    })
+})
+
+app.get('/admin/menu/delete/:id', checkAuthenticated, checkAdmin, (req, res) => {
+    deleteMenuItem(req.params.id, (err) => {
+        if (err) {
+            // items that appear in past orders cannot be deleted (foreign key) - 86 them instead
+            req.flash('error', 'This item has been ordered before so it cannot be deleted. Use 86 to hide it instead.');
+        } else {
+            req.flash('success', 'Item deleted.');
+        }
+        res.redirect('/admin/menu');
+    })
+})
+
+app.get('/admin/menu/toggle/:id', checkAuthenticated, checkAdmin, (req, res) => {
+    toggleAvailability(req.params.id, (err) => {
+        if (err) throw err;
+        // stay on whichever list the admin was looking at
+        res.redirect(req.query.back === '86' ? '/admin/menu/86' : '/admin/menu');
+    })
+})
+
+// orders: two tabs, online and in-restaurant
+app.get('/admin/orders', checkAuthenticated, checkAdmin, (req, res) => {
+    res.redirect('/admin/orders/online');
+})
+
+app.get('/admin/orders/:type', checkAuthenticated, checkAdmin, (req, res) => {
+    const type = req.params.type === 'restaurant' ? 'in_restaurant' : 'online';
+    getOrdersByType(type, (err, orders) => {
+        if (err) throw err;
+        res.render('adminOrders', {
+            user: req.session.user, orders,
+            activeTab: req.params.type === 'restaurant' ? 'restaurant' : 'online',
+            messages: req.flash('success')
+        });
+    })
+})
+
+app.get('/admin/orders/:type/status/:id/:status', checkAuthenticated, checkAdmin, (req, res) => {
+    updateOrderStatus(req.params.id, req.params.status, (err) => {
+        if (err) throw err;
+        req.flash('success', `Order #${req.params.id} marked as ${req.params.status}.`);
+        res.redirect('/admin/orders/' + req.params.type);
+    })
+})
+
+// members: membership, card tier and spending
+app.get('/admin/members', checkAuthenticated, checkAdmin, (req, res) => {
+    getAllMembers((err, members) => {
+        if (err) throw err;
+        res.render('adminMembers', { user: req.session.user, members });
+    })
+})
+
+app.get('/admin/members/:id', checkAuthenticated, checkAdmin, (req, res) => {
+    const fromDate = req.query.from || '';
+    const toDate = req.query.to || '';
+    getMemberById(req.params.id, (err, member) => {
+        if (err) throw err;
+        if (!member) return res.status(404).send('Member not found');
+        getMemberSpending(req.params.id, fromDate, toDate, (err2, orders) => {
+            if (err2) throw err2;
+            // total for the filtered period, added up server-side
+            let periodTotal = 0;
+            orders.forEach(o => periodTotal += Number(o.total));
+            res.render('adminMemberDetail', { user: req.session.user, member, orders, periodTotal, fromDate, toDate });
+        })
+    })
+})
+
+// reservations: pending requests + upcoming (accepted) bookings
+app.get('/admin/reservations', checkAuthenticated, checkAdmin, (req, res) => {
+    getReservationsByStatus('pending', (err, pending) => {
+        if (err) throw err;
+        getReservationsByStatus('upcoming', (err2, upcoming) => {
+            if (err2) throw err2;
+            res.render('adminReservations', {
+                user: req.session.user, pending, upcoming,
+                messages: req.flash('success'), errors: req.flash('error')
+            });
+        })
+    })
+})
+
+app.post('/admin/reservations/accept/:id', checkAuthenticated, checkAdmin, (req, res) => {
+    const tableNumber = parseInt(req.body.table_number);
+    if (!tableNumber) {
+        req.flash('error', 'Enter a table number to accept a reservation.');
+        return res.redirect('/admin/reservations');
+    }
+    acceptReservation(req.params.id, tableNumber, (err) => {
+        if (err) throw err;
+        req.flash('success', `Reservation accepted - table ${tableNumber} assigned.`);
+        res.redirect('/admin/reservations');
+    })
+})
+
+// phone bookings keyed in by the admin go straight to upcoming
+app.post('/admin/reservations/add', checkAuthenticated, checkAdmin, (req, res) => {
+    const { card_id, reserve_date, reserve_time, pax, table_number } = req.body;
+    if (!card_id || !reserve_date || !reserve_time || !pax || !table_number) {
+        req.flash('error', 'All reservation fields are required.');
+        return res.redirect('/admin/reservations');
+    }
+    findMemberByCardId(card_id.trim(), (err, member) => {
+        if (err) throw err;
+        if (!member) {
+            req.flash('error', `No member found with card ID ${card_id}.`);
+            return res.redirect('/admin/reservations');
+        }
+        addWalkInReservation(member.user_id, reserve_date, reserve_time, pax, table_number, (err2) => {
+            if (err2) throw err2;
+            req.flash('success', `Reservation added for ${member.name} (table ${table_number}).`);
+            res.redirect('/admin/reservations');
+        })
+    })
+})
+
+// remove covers: finished bookings, member cancellations and rejected requests
+app.get('/admin/reservations/remove/:id', checkAuthenticated, checkAdmin, (req, res) => {
+    removeReservation(req.params.id, (err) => {
+        if (err) throw err;
+        req.flash('success', 'Reservation removed.');
+        res.redirect('/admin/reservations');
+    })
+})
+
+// drill-down from a member's spending: what was in one order
+app.get('/admin/members/:id/order/:orderId', checkAuthenticated, checkAdmin, (req, res) => {
+    getMemberById(req.params.id, (err, member) => {
+        if (err) throw err;
+        if (!member) return res.status(404).send('Member not found');
+        getOrderById(req.params.orderId, (err2, order) => {
+            if (err2) throw err2;
+            // the order must actually belong to this member
+            if (!order || order.user_id !== member.user_id) return res.status(404).send('Order not found');
+            getOrderItems(req.params.orderId, (err3, items) => {
+                if (err3) throw err3;
+                res.render('adminOrderDetail', { user: req.session.user, member, order, items });
+            })
+        })
+    })
+})
+
+// complaints and opinions from members
+app.get('/admin/complaints', checkAuthenticated, checkAdmin, (req, res) => {
+    getAllComplaints((err, complaints) => {
+        if (err) throw err;
+        res.render('adminComplaints', { user: req.session.user, complaints, messages: req.flash('success') });
+    })
+})
+
+app.get('/admin/complaints/remove/:id', checkAuthenticated, checkAdmin, (req, res) => {
+    removeComplaint(req.params.id, (err) => {
+        if (err) throw err;
+        req.flash('success', 'Complaint cleared.');
+        res.redirect('/admin/complaints');
+    })
+})
+
+// profile route
 app.get('/profile', checkAuthenticated, (req, res) => {
     getUserById(req.session.user.user_id, (err, userInfo) => {
         if (err) throw err;

@@ -1,0 +1,146 @@
+<%# Done by: Khaing Khant Zaw (Leon) - Member dashboard: search, quick actions, category icons, dishes, points card %>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard | Supper Club</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body class="bg-light">
+  <%- include("partials/navbar") %>
+  <div class="container mt-4 mb-5">
+
+    <!-- search dishes across the whole menu -->
+    <form method="GET" action="/dashboard" class="input-group input-group-lg mb-4 shadow-sm">
+      <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+      <input type="text" class="form-control border-start-0" name="search"
+             placeholder="Search for dishes..." value="<%= search %>">
+      <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+
+    <% const hour = new Date().getHours();
+       const greeting = hour < 12 ? 'Good morning' : (hour < 18 ? 'Good afternoon' : 'Good evening'); %>
+    <h2 class="mb-1"><%= greeting %>, <%= user.name %>! 👋</h2>
+    <p class="text-muted">What are you craving today?</p>
+
+    <% if (messages && messages.length > 0) { %>
+      <div class="alert alert-success"><%= messages[0] %></div>
+    <% } %>
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+
+        <!-- quick actions -->
+        <div class="row row-cols-3 g-3 mb-4">
+          <div class="col">
+            <a href="/book-table" class="text-decoration-none">
+              <div class="card h-100 text-center shadow-sm">
+                <div class="card-body">
+                  <i class="bi bi-calendar-plus fs-2 text-primary"></i>
+                  <h6 class="card-title mt-2 mb-0">Book a Table</h6>
+                  <small class="text-muted">Reserve your table easily</small>
+                </div>
+              </div>
+            </a>
+          </div>
+          <div class="col">
+            <a href="/favourites" class="text-decoration-none">
+              <div class="card h-100 text-center shadow-sm">
+                <div class="card-body">
+                  <i class="bi bi-heart-fill fs-2 text-danger"></i>
+                  <h6 class="card-title mt-2 mb-0">Favourites</h6>
+                  <small class="text-muted">Your saved dishes</small>
+                </div>
+              </div>
+            </a>
+          </div>
+          <div class="col">
+            <a href="/complain" class="text-decoration-none">
+              <div class="card h-100 text-center shadow-sm">
+                <div class="card-body">
+                  <i class="bi bi-chat-dots fs-2 text-warning"></i>
+                  <h6 class="card-title mt-2 mb-0">Complain</h6>
+                  <small class="text-muted">Any complain or suggestion?</small>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <!-- category icons + redeem shortcut -->
+        <% const icons = { 'Asian': 'bi-egg-fried', 'Tandoori': 'bi-fire', 'Pasta': 'bi-egg',
+                           'Pizza': 'bi-circle-half', 'Drinks': 'bi-cup-straw', 'Dessert': 'bi-cake2' }; %>
+        <h5 class="mb-3">Categories</h5>
+        <div class="d-flex flex-wrap gap-2 mb-4">
+          <% for (let i = 0; i < categories.length; i++) { %>
+            <a href="/dashboard?category=<%= encodeURIComponent(categories[i].name) %>"
+               class="btn <%= !search && activeCategory === categories[i].name ? 'btn-primary' : 'btn-outline-secondary' %>">
+              <i class="bi <%= icons[categories[i].name] || 'bi-egg-fried' %>"></i> <%= categories[i].name %>
+            </a>
+          <% } %>
+          <a href="/redeem" class="btn btn-warning"><i class="bi bi-trophy"></i> Redeem</a>
+        </div>
+
+        <!-- dishes: search results or the active category (first category by default) -->
+        <h5 class="mb-3"><%= search ? `Results for "${search}"` : activeCategory %></h5>
+        <% if (dishes.length === 0) { %>
+          <div class="alert alert-info">No dishes found<%= search ? ' for this search' : ' in this category' %>.</div>
+        <% } %>
+        <div class="row row-cols-1 row-cols-md-2 g-3">
+          <% for (let i = 0; i < dishes.length; i++) { %>
+            <div class="col">
+              <div class="card h-100 shadow-sm food-card">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <h6 class="card-title mb-1"><%= dishes[i].name %></h6>
+                    <a href="/favourites/toggle/<%= dishes[i].menu_item_id %>?category=<%= encodeURIComponent(activeCategory) %>"
+                       class="text-decoration-none fs-5" title="Add or remove favourite">
+                      <i class="bi <%= dishes[i].is_fav ? 'bi-heart-fill text-danger' : 'bi-heart text-secondary' %>"></i>
+                    </a>
+                  </div>
+                  <p class="card-text text-muted small mb-2"><%= dishes[i].description %></p>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <strong>$<%= dishes[i].price %></strong>
+                    <% if (dishes[i].points_cost) { %>
+                      <span class="badge bg-warning text-dark"><i class="bi bi-trophy"></i> <%= dishes[i].points_cost %> pts</span>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- right column: points card + upcoming booking -->
+      <div class="col-lg-4">
+        <div class="card shadow-sm mb-3" style="background-color: #fff8e1;">
+          <div class="card-body d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="mb-1"><i class="bi bi-trophy text-warning"></i> Loyalty Points</h6>
+              <p class="mb-0">You have <strong class="fs-4"><%= user.points %></strong> points</p>
+            </div>
+            <a href="/redeem" class="btn btn-warning">Redeem</a>
+          </div>
+        </div>
+
+        <% if (nextBooking) { %>
+          <div class="card shadow-sm border-success mb-3">
+            <div class="card-body">
+              <h6 class="text-success mb-1"><i class="bi bi-calendar-check"></i> Reservation Confirmed</h6>
+              <p class="mb-1">
+                <%= nextBooking.reserve_date.toLocaleDateString('en-SG', { dateStyle: 'full' }) %>
+                · <%= nextBooking.reserve_time.substring(0, 5) %>
+              </p>
+              <p class="mb-2 text-muted">Table <%= nextBooking.table_number %> · <%= nextBooking.pax %> pax</p>
+              <a href="/book-table" class="btn btn-sm btn-outline-success">View Details</a>
+            </div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

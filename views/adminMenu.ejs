@@ -1,0 +1,85 @@
+<%# Done by: Khaing Khant Zaw (Leon) - Manage Menu list + 86 List %>
+<!DOCTYPE html>
+<html>
+<head>
+    <title><%= only86 ? '86 List' : 'Manage Menu' %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <%- include("partials/navbar") %>
+  <div class="container mt-4">
+    <%- include("partials/adminNav", { activeAdmin: only86 ? '86' : 'menu' }) %>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1><%= only86 ? "86 List (Sold Out)" : "Manage Menu" %></h1>
+      <div>
+        <% if (!only86) { %>
+          <a href="/admin/menu/86" class="btn btn-outline-danger"><i class="bi bi-slash-circle"></i> 86 List</a>
+          <a href="/admin/menu/add" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Add Item</a>
+        <% } else { %>
+          <a href="/admin/menu" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Full Menu</a>
+        <% } %>
+      </div>
+    </div>
+
+    <% if (messages && messages.length > 0) { %>
+      <div class="alert alert-success"><%= messages[0] %></div>
+    <% } %>
+    <% if (errors && errors.length > 0) { %>
+      <div class="alert alert-danger"><%= errors[0] %></div>
+    <% } %>
+
+    <% if (items.length === 0) { %>
+      <div class="alert alert-info">
+        <%= only86 ? "Nothing is 86'd right now - the whole menu is available." : "No menu items yet." %>
+      </div>
+    <% } %>
+
+    <% if (items.length > 0) { %>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% for (let i = 0; i < items.length; i++) { %>
+            <tr>
+              <td><%= items[i].menu_item_id %></td>
+              <td><%= items[i].name %></td>
+              <td><%= items[i].category %></td>
+              <td>$<%= items[i].price %></td>
+              <td>
+                <% if (items[i].available) { %>
+                  <span class="badge bg-success">Available</span>
+                <% } else { %>
+                  <span class="badge bg-danger">86'd</span>
+                <% } %>
+              </td>
+              <td class="text-end">
+                <a href="/admin/menu/edit/<%= items[i].menu_item_id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Edit</a>
+                <a href="/admin/menu/toggle/<%= items[i].menu_item_id %><%= only86 ? '?back=86' : '' %>"
+                   class="btn btn-sm <%= items[i].available ? 'btn-outline-danger' : 'btn-outline-success' %>">
+                  <%= items[i].available ? '86 it' : 'Restore' %>
+                </a>
+                <a href="/admin/menu/delete/<%= items[i].menu_item_id %>" class="btn btn-sm btn-outline-dark"
+                   onclick="return confirm('Delete <%= items[i].name %> from the menu?')"><i class="bi bi-trash"></i> Delete</a>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </div>
+</body>
+</html>
