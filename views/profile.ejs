@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="/styles.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/script.js" defer></script>
 </head>
 <body class="profile-page-body">
   <%- include("partials/navbar") %>
@@ -155,6 +156,7 @@
                   <span class="text-muted text-capitalize ms-2">(<%= member.relationship_name %>)</span>
                   <div class="profile-label">Card ID: <%= member.card_id %>  Points: <%= member.points %></div>
                 </div>
+                <!-- only the family owner can remove others, and never themself (owner is in this list too) -->
                 <% if (isFamilyOwner && !member.is_owner) { %>
                   <div class="d-flex align-items-center gap-2">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editMemberModal<%= member.user_id %>">
@@ -193,6 +195,12 @@
                     <input class="form-control" type="text" id="member_name<%= member.user_id %>" name="name" value="<%= member.name %>" required>
                   </div>
                   <div class="mb-3">
+                    <label class="form-label" for="member_phone_number<%= member.user_id %>">Phone Number</label>
+                    <input class="form-control" type="tel" id="member_phone_number<%= member.user_id %>" name="phone_number" placeholder="12345678"
+                      inputmode="numeric" pattern="[0-9]{8}" title="Phone number must be exactly 8 digits"
+                      value="<%= member.phone_number %>" required>
+                  </div>
+                  <div class="mb-3">
                     <label class="form-label" for="member_relationship<%= member.user_id %>">Relationship</label>
                     <select class="form-select" id="member_relationship<%= member.user_id %>" name="relationship_type_id" required>
                       <% relationshipTypes.forEach(function(type) { %>
@@ -202,7 +210,8 @@
                   </div>
                   <div class="mb-3">
                     <label class="form-label" for="member_password<%= member.user_id %>">New Password</label>
-                    <input class="form-control" type="password" id="member_password<%= member.user_id %>" name="password" placeholder="Leave blank to keep current password">
+                    <input class="form-control" type="password" id="member_password<%= member.user_id %>" name="password"
+                      maxlength="20" placeholder="Leave blank to keep current password">
                   </div>
                 </div>
                 <div class="modal-footer">
@@ -234,11 +243,13 @@
               </div>
               <div class="mb-3">
                 <label class="form-label" for="family_phone_number">Phone Number</label>
-                <input class="form-control" type="text" id="family_phone_number" name="phone_number" required>
+                <input class="form-control" type="tel" id="family_phone_number" name="phone_number" placeholder="12345678" 
+                  inputmode="numeric" pattern="[0-9]{8}" title="Phone number must be exactly 8 digits" required>
               </div>
               <div class="mb-3">
                 <label class="form-label" for="family_password">Password</label>
-                <input class="form-control" type="password" id="family_password" name="password" required>
+                <input class="form-control" type="password" id="family_password" name="password" 
+                  maxlength="20" required>
               </div>
               <div class="mb-3">
                 <label class="form-label" for="relationship_type_id">Relationship</label>
@@ -260,7 +271,7 @@
     </div>
   <% } %>
 
-  <!-- Edit Profile modal (name + phone number only, posts to /profile) -->
+  <!-- Edit Profile modal (name + phone number + password only, posts to /profile) -->
   <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -276,7 +287,22 @@
             </div>
             <div class="mb-3">
               <label class="form-label" for="phone_number">Phone Number</label>
-              <input class="form-control" type="text" id="phone_number" name="phone_number" value="<%= profileUser.phone_number %>" required>
+              <input class="form-control" type="tel" id="phone_number" name="phone_number" placeholder="12345678" 
+                inputmode="numeric" pattern="[0-9]{8}" title="Phone number must be exactly 8 digits"
+                value="<%= profileUser.phone_number %>" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="password">New Password</label>
+              <input class="form-control" type="password" id="password" name="password" maxlength="20"
+                placeholder="Leave blank to keep current password">
+            </div>
+            <div class="mb-3">
+              <label for="confirmPassword" class="form-label">Confirm Password:</label>
+              <input type="password" id="confirmPassword" name="confirmPassword" maxlength="20"
+              placeholder="Confirm password" class="form-control">
+              <span id="passwordMessage" class="text-danger d-none">
+                Passwords do not match.
+              </span>
             </div>
           </div>
           <div class="modal-footer">

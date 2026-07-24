@@ -61,6 +61,18 @@ app.use(express.static('public'));
 app.use(flash());
 app.set('view engine', 'ejs');
 
+// shared by any route that takes a password + confirmPassword pair
+// returns an error message to flash, or null if the password's fine
+function passwordError(password, confirmPassword) {
+    if (password.length < 6) {
+        return 'Password should be at least 6 or more characters long';
+    }
+    if (password !== confirmPassword) {
+        return 'Password and confirm password do not match';
+    }
+    return null;
+}
+
 // Custom Middlewares
 const validateRegistration = (req, res, next) => {
     const { name, telephoneNo, password, confirmPassword } = req.body;
@@ -70,13 +82,9 @@ const validateRegistration = (req, res, next) => {
         req.flash('formData', req.body);
         return res.redirect('/register');
     }
-    if (password.length < 6) {
-        req.flash('error', 'Password should be at least 6 or more characters long');
-        req.flash('formData', req.body); 
-        return res.redirect('/register');
-    }
-    if (password !== confirmPassword) {
-        req.flash('error', 'Password and confirm password do not match');
+    const error = passwordError(password, confirmPassword);
+    if (error) {
+        req.flash('error', error);
         req.flash('formData', req.body);
         return res.redirect('/register');
     }
@@ -994,13 +1002,23 @@ app.get('/profile', checkAuthenticated, (req, res) => {
 app.post('/profile', checkAuthenticated, (req, res) => {
     const name = req.body.name.trim();
     const phone_number = req.body.phone_number.trim();
+    const password = req.body.password;
+    const confirmPassword = req.body.confirmPassword;
 
     if (!name || !phone_number) {
         req.flash('error', 'Name and phone number are required.');
         return res.redirect('/profile');
     }
 
-    updateUser(req.session.user.user_id, { name, phone_number }, (err) => {
+    if (password) {
+        const error = passwordError(password, confirmPassword);
+        if (error) {
+            req.flash('error', error);
+            return res.redirect('/profile');
+        }
+    }
+
+    updateUser(req.session.user.user_id, { name, phone_number, password }, (err) => {
         if (err) throw err;
         req.session.user.name = name;
         req.flash('success', 'Profile updated successfully.');
@@ -1052,15 +1070,16 @@ app.post('/profile/family/:id/edit', checkAuthenticated, (req, res) => {
         }
 
         const name = req.body.name.trim();
+        const phone_number = req.body.phone_number.trim();
         const relationship_type_id = req.body.relationship_type_id;
-        const password = req.body.password.trim();
+        const password = req.body.password;
 
-        if (!name || !relationship_type_id) {
-            req.flash('error', 'Name and relationship are required.');
+        if (!name || !phone_number || !relationship_type_id) {
+            req.flash('error', 'Name, phone number, and relationship are required.');
             return res.redirect('/profile');
         }
 
-        updateFamilyMember(req.params.id, userInfo.user_id, { name, relationship_type_id, password }, (err) => {
+        updateFamilyMember(req.params.id, userInfo.user_id, { name, phone_number, relationship_type_id, password }, (err) => {
             if (err) throw err;
             req.flash('success', 'Family member updated.');
             res.redirect('/profile');

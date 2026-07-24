@@ -14,13 +14,22 @@ function getUserById(userId, callback) {
     });
 }
 
-function updateUser(userId, { name, phone_number }, callback) {
-    const sql = `
-    UPDATE user
-    SET name = ?, phone_number = ?
-    WHERE user_id = ?`;
 
-    db.query(sql, [name, phone_number, userId], (err, result) => {
+// password is optional, if left blank, only name/phone number changes and the
+// user keeps their existing password
+function updateUser(userId, { name, phone_number, password }, callback) {
+    let sql = `UPDATE user SET name = ?, phone_number = ?`;
+    const params = [name, phone_number];
+
+    if (password) {
+        sql += `, password = SHA1(?)`;
+        params.push(password);
+    }
+
+    sql += ` WHERE user_id = ?`;
+    params.push(userId);
+
+    db.query(sql, params, (err, result) => {
         if (err) {
             return callback(err);
         }
@@ -102,11 +111,11 @@ function addFamilyMember(ownerId, { card_id, name, phone_number, password, relat
     });
 }
 
-// password is optional here - if left blank, only name/relationship change and the
+// password is optional, if left blank, only name/phone number/relationship changes and the
 // member keeps their existing password
-function updateFamilyMember(memberId, ownerId, { name, relationship_type_id, password }, callback) {
-    let sql = `UPDATE user SET name = ?, relationship_type_id = ?`;
-    const params = [name, relationship_type_id];
+function updateFamilyMember(memberId, ownerId, { name, phone_number, relationship_type_id, password }, callback) {
+    let sql = `UPDATE user SET name = ?, phone_number = ?, relationship_type_id = ?`;
+    const params = [name, phone_number, relationship_type_id];
 
     if (password) {
         sql += `, password = SHA1(?)`;
