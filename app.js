@@ -635,10 +635,15 @@ app.post('/profile/card', checkAuthenticated, (req, res) => {
     })
 })
 
-// one heart button adds or removes a favourite, then returns to where you were
+// one heart button adds or removes a favourite. AJAX calls (fetch, marked with
+// X-Requested-With) get a JSON reply so the page doesn't reload/jump to the
+// top; anything else falls back to a redirect to where you were.
 app.get('/favourites/toggle/:id', checkAuthenticated, (req, res) => {
-    toggleFavourite(req.session.user.user_id, req.params.id, (err) => {
+    toggleFavourite(req.session.user.user_id, req.params.id, (err, isFav) => {
         if (err) throw err;
+        if (req.xhr) {
+            return res.json({ is_fav: isFav });
+        }
         if (req.query.back === 'favourites') {
             res.redirect('/favourites');
         } else if (req.query.back === 'menu') {

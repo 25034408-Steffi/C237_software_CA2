@@ -189,9 +189,9 @@ function toggleFavourite(userId, menuItemId, callback) {
             return callback(err)
         }
         if (rows.length > 0) {
-            db.query('DELETE FROM favourite WHERE user_id = ? AND menu_item_id = ?', [userId, menuItemId], callback)
+            db.query('DELETE FROM favourite WHERE user_id = ? AND menu_item_id = ?', [userId, menuItemId], (err) => callback(err, false))
         } else {
-            db.query('INSERT INTO favourite (user_id, menu_item_id) VALUES (?, ?)', [userId, menuItemId], callback)
+            db.query('INSERT INTO favourite (user_id, menu_item_id) VALUES (?, ?)', [userId, menuItemId], (err) => callback(err, true))
         }
     })
 }
