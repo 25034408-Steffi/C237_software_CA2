@@ -11,7 +11,7 @@
 <body class="landing-body">
   <%- include("partials/navbar") %>
 
-  <div class="container-xl py-5 landing-wrap">
+  <div class="container-lg py-5">
     <% if (messages && messages.length > 0) { %>
       <div class="alert alert-success">
         <% messages.forEach(function(message) { %><p class="mb-0"><%= message %></p><% }); %>
@@ -23,7 +23,7 @@
       <!-- left: brand hero with food photos -->
       <div class="col-lg-7">
         <h1 class="landing-title">Fresh flavors,<br><span class="text-brand-orange">happy moments.</span></h1>
-        <p class="lead fs-4 text-muted mb-4">
+        <p class="lead text-muted mb-4">
           Order your favourite meals in minutes with <strong class="text-brand-orange">Supper Club</strong>.
         </p>
 
@@ -69,7 +69,7 @@
       <!-- right: welcome card with Register / Log In tabs -->
       <div class="col-lg-5">
         <div class="card landing-card shadow">
-          <div class="card-body p-5">
+          <div class="card-body p-4">
             <% if (user) { %>
               <h3 class="text-center mb-1">Welcome back, <%= user.name %>!</h3>
               <p class="text-center text-muted">Ready for something delicious?</p>
@@ -86,8 +86,8 @@
 
               <!-- pane 1: welcome -->
               <div id="welcomePane">
-                <h2 class="text-center mb-2 landing-welcome">Welcome</h2>
-                <p class="text-center text-muted fs-5 mb-4">Create your account or log in to continue.</p>
+                <h3 class="text-center mb-1">Welcome</h3>
+                <p class="text-center text-muted mb-4">Create your account or log in to continue.</p>
                 <div class="d-grid gap-2">
                   <button type="button" class="btn btn-brand-orange btn-lg" id="showRegister">
                     <i class="bi bi-person-plus"></i> Create Account <i class="bi bi-arrow-right"></i>
@@ -107,22 +107,22 @@
                   <button type="button" class="btn btn-sm btn-outline-secondary back-btn me-2" title="Back">
                     <i class="bi bi-arrow-left"></i>
                   </button>
-                  <h3 class="mb-0">Create Account</h3>
+                  <h4 class="mb-0">Create Account</h4>
                 </div>
                 <form method="POST" action="/register">
-                  <div class="input-group input-group-lg mb-3">
+                  <div class="input-group mb-3">
                     <span class="input-group-text bg-white"><i class="bi bi-person"></i></span>
                     <input type="text" class="form-control" name="name" placeholder="Full Name" required>
                   </div>
-                  <div class="input-group input-group-lg mb-3">
+                  <div class="input-group mb-3">
                     <span class="input-group-text bg-white"><i class="bi bi-telephone"></i></span>
                     <input type="text" class="form-control" name="telephoneNo" placeholder="Phone Number" required>
                   </div>
-                  <div class="input-group input-group-lg mb-3">
+                  <div class="input-group mb-3">
                     <span class="input-group-text bg-white"><i class="bi bi-lock"></i></span>
                     <input type="password" class="form-control" name="password" placeholder="Password" minlength="6" required>
                   </div>
-                  <div class="input-group input-group-lg mb-4">
+                  <div class="input-group mb-4">
                     <span class="input-group-text bg-white"><i class="bi bi-lock-fill"></i></span>
                     <input type="password" class="form-control" name="confirmPassword" placeholder="Confirm Password" minlength="6" required>
                   </div>
@@ -138,14 +138,14 @@
                   <button type="button" class="btn btn-sm btn-outline-secondary back-btn me-2" title="Back">
                     <i class="bi bi-arrow-left"></i>
                   </button>
-                  <h3 class="mb-0">Log In</h3>
+                  <h4 class="mb-0">Log In</h4>
                 </div>
                 <form method="POST" action="/login">
-                  <div class="input-group input-group-lg mb-3">
+                  <div class="input-group mb-3">
                     <span class="input-group-text bg-white"><i class="bi bi-credit-card"></i></span>
                     <input type="text" class="form-control" name="card_id" placeholder="Membership Card ID" required>
                   </div>
-                  <div class="input-group input-group-lg mb-4">
+                  <div class="input-group mb-4">
                     <span class="input-group-text bg-white"><i class="bi bi-lock"></i></span>
                     <input type="password" class="form-control" name="password" placeholder="Password" required>
                   </div>
