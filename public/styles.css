@@ -595,3 +595,22 @@ form .login-text, form .register-text {
 @media (max-width: 991px) {
     .landing-title { font-size: 2.3rem; }
 }
+
+/* larger landing: fill most of the screen */
+.landing-wrap { min-height: calc(100vh - 90px); display: flex; align-items: center; }
+.landing-wrap > .row { width: 100%; }
+.landing-title { font-size: 4.2rem; }
+.landing-welcome { font-weight: 700; }
+.landing-card .btn-lg { padding-top: 0.9rem; padding-bottom: 0.9rem; font-size: 1.15rem; }
+.landing-chip { padding: 1.2rem; }
+.landing-chip strong { font-size: 1.05rem; }
+.landing-chip small { font-size: 0.85rem; }
+.landing-food-lg { width: 270px; height: 230px; }
+.landing-food-md { width: 200px; height: 180px; }
+.landing-food-sm { width: 150px; height: 140px; }
+@media (max-width: 991px) {
+    .landing-title { font-size: 2.6rem; }
+    .landing-food-lg { width: 180px; height: 150px; }
+    .landing-food-md { width: 130px; height: 115px; }
+    .landing-food-sm { width: 100px; height: 90px; }
+}
