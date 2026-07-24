@@ -83,65 +83,18 @@
               <h3 class="text-center mb-1">Welcome</h3>
               <p class="text-center text-muted mb-4">Create your account or log in to continue.</p>
 
-              <!-- tab switch (L13 DOM show/hide) -->
-              <div class="landing-tabs d-flex mb-4">
-                <button type="button" class="landing-tab active" id="tabRegister">
-                  <i class="bi bi-person-plus"></i> Register
-                </button>
-                <button type="button" class="landing-tab" id="tabLogin">
-                  <i class="bi bi-person"></i> Log In
-                </button>
+              <%# same old register and login pages - this card just looks nicer %>
+              <div class="d-grid gap-2">
+                <a href="/register" class="btn btn-brand-orange btn-lg">
+                  <i class="bi bi-person-plus"></i> Create Account <i class="bi bi-arrow-right"></i>
+                </a>
               </div>
-
-              <!-- register form -->
-              <form method="POST" action="/register" id="registerPane">
-                <div class="input-group mb-3">
-                  <span class="input-group-text bg-white"><i class="bi bi-person"></i></span>
-                  <input type="text" class="form-control" name="name" placeholder="Full Name" required>
-                </div>
-                <div class="input-group mb-3">
-                  <span class="input-group-text bg-white"><i class="bi bi-telephone"></i></span>
-                  <input type="text" class="form-control" name="telephoneNo" placeholder="Phone Number" required>
-                </div>
-                <div class="input-group mb-3">
-                  <span class="input-group-text bg-white"><i class="bi bi-lock"></i></span>
-                  <input type="password" class="form-control" name="password" placeholder="Password" minlength="6" required>
-                </div>
-                <div class="input-group mb-4">
-                  <span class="input-group-text bg-white"><i class="bi bi-lock-fill"></i></span>
-                  <input type="password" class="form-control" name="confirmPassword" placeholder="Confirm Password" minlength="6" required>
-                </div>
-                <div class="d-grid">
-                  <button type="submit" class="btn btn-brand-orange btn-lg">Create Account <i class="bi bi-arrow-right"></i></button>
-                </div>
-                <div class="landing-divider my-3"><span>or</span></div>
-                <div class="d-grid">
-                  <button type="button" class="btn btn-outline-brand-orange" onclick="document.getElementById('tabLogin').click()">
-                    <i class="bi bi-person"></i> Log In
-                  </button>
-                </div>
-              </form>
-
-              <!-- log in form (hidden until the tab is picked) -->
-              <form method="POST" action="/login" id="loginPane" style="display: none;">
-                <div class="input-group mb-3">
-                  <span class="input-group-text bg-white"><i class="bi bi-credit-card"></i></span>
-                  <input type="text" class="form-control" name="card_id" placeholder="Membership Card ID" required>
-                </div>
-                <div class="input-group mb-4">
-                  <span class="input-group-text bg-white"><i class="bi bi-lock"></i></span>
-                  <input type="password" class="form-control" name="password" placeholder="Password" required>
-                </div>
-                <div class="d-grid">
-                  <button type="submit" class="btn btn-brand-orange btn-lg">Log In <i class="bi bi-arrow-right"></i></button>
-                </div>
-                <div class="landing-divider my-3"><span>or</span></div>
-                <div class="d-grid">
-                  <button type="button" class="btn btn-outline-brand-orange" onclick="document.getElementById('tabRegister').click()">
-                    <i class="bi bi-person-plus"></i> Create Account
-                  </button>
-                </div>
-              </form>
+              <div class="landing-divider my-3"><span>or</span></div>
+              <div class="d-grid">
+                <a href="/login" class="btn btn-outline-brand-orange btn-lg">
+                  <i class="bi bi-person"></i> Log In
+                </a>
+              </div>
             <% } %>
           </div>
         </div>
@@ -149,20 +102,5 @@
     </div>
   </div>
 
-  <% if (!user) { %>
-  <script>
-    // L13 DOM enhancement - switch between the Register and Log In panes
-    const tabRegister = document.getElementById('tabRegister');
-    const tabLogin = document.getElementById('tabLogin');
-    function showPane(register) {
-      document.getElementById('registerPane').style.display = register ? 'block' : 'none';
-      document.getElementById('loginPane').style.display = register ? 'none' : 'block';
-      tabRegister.classList.toggle('active', register);
-      tabLogin.classList.toggle('active', !register);
-    }
-    tabRegister.addEventListener('click', () => showPane(true));
-    tabLogin.addEventListener('click', () => showPane(false));
-  </script>
-  <% } %>
 </body>
 </html>
