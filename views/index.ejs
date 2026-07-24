@@ -1,3 +1,4 @@
+<%# Done by: Khaing Khant Zaw (Leon) - Landing page: brand hero + Register/Log In tab card (TastyBites-style) %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,58 +8,161 @@
     <link rel="stylesheet" href="/styles.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body>
+<body class="landing-body">
   <%- include("partials/navbar") %>
 
-  <section class="hero">
-    <h1>Great food, delivered with heart</h1>
-    <p class="lead">Order your favourites, earn points on every purchase, and enjoy a menu made to satisfy.</p>
-
-    <% if (user) { %>
-      <a href="/menu" class="btn btn-amber btn-lg">Browse the menu</a>
-    <% } else { %>
-      <a href="/register" class="btn btn-amber btn-lg">Get Started</a>
-      <a href="/login" class="btn btn-outline-light btn-brand btn-lg">Login</a>
-    <% } %>
-  </section>
-
-  <div class="container feature-strip">
+  <div class="container-lg py-5">
     <% if (messages && messages.length > 0) { %>
-      <div class="welcome-banner">
-        <% messages.forEach(function(message) { %>
-          <p class="mb-1"><%= message %></p>
-        <% }); %>
-        <% if (user) { %>
-          <h2 class="mt-2">Welcome, <%= user.name %>!</h2>
-          <a href="/menu" class="btn btn-primary mt-3">Order now</a>
-          <a href="/logout" class="btn btn-outline-secondary mt-3">Logout</a>
-        <% } %>
+      <div class="alert alert-success">
+        <% messages.forEach(function(message) { %><p class="mb-0"><%= message %></p><% }); %>
       </div>
     <% } %>
 
-    <div class="row g-4 mt-1 mb-5">
-      <div class="col-md-4">
-        <div class="feature-card">
-          <i class="bi bi-lightning-charge-fill"></i>
-          <h3>Fast Delivery</h3>
-          <p>Hot food, delivered quickly to your door.</p>
+    <div class="row g-5 align-items-center">
+
+      <!-- left: brand hero with food photos -->
+      <div class="col-lg-7">
+        <h1 class="landing-title">Fresh flavors,<br><span class="text-brand-orange">happy moments.</span></h1>
+        <p class="lead text-muted mb-4">
+          Order your favourite meals in minutes with <strong class="text-brand-orange">Supper Club</strong>.
+        </p>
+
+        <!-- food photo cluster (from our own menu) -->
+        <div class="d-flex align-items-end gap-3 mb-4 flex-wrap">
+          <img src="/images/hawaiian_pizza.jpg" alt="Pizza" class="landing-food landing-food-lg">
+          <img src="/images/laksa.jpg" alt="Laksa" class="landing-food landing-food-md">
+          <img src="/images/butter_chicken.jpg" alt="Butter Chicken" class="landing-food landing-food-md">
+          <img src="/images/tiramisu.jpg" alt="Tiramisu" class="landing-food landing-food-sm">
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="landing-chip">
+              <i class="bi bi-scooter text-brand-orange fs-3"></i>
+              <div>
+                <strong>Fast Delivery</strong>
+                <small class="d-block text-muted">Quick and reliable delivery to your doorstep.</small>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="landing-chip">
+              <i class="bi bi-geo-alt-fill text-brand-orange fs-3"></i>
+              <div>
+                <strong>Easy Tracking</strong>
+                <small class="d-block text-muted">Track your order in real-time every step of the way.</small>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="landing-chip">
+              <i class="bi bi-egg-fried text-brand-orange fs-3"></i>
+              <div>
+                <strong>Fresh Meals</strong>
+                <small class="d-block text-muted">Made with quality ingredients and cooked to perfection.</small>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="col-md-4">
-        <div class="feature-card">
-          <i class="bi bi-egg-fried"></i>
-          <h3>Fresh Ingredients</h3>
-          <p>Quality dishes made with care, every time.</p>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="feature-card">
-          <i class="bi bi-star-fill"></i>
-          <h3>Earn Rewards</h3>
-          <p>Collect points with every order and redeem perks.</p>
+
+      <!-- right: welcome card with Register / Log In tabs -->
+      <div class="col-lg-5">
+        <div class="card landing-card shadow">
+          <div class="card-body p-4">
+            <% if (user) { %>
+              <h3 class="text-center mb-1">Welcome back, <%= user.name %>!</h3>
+              <p class="text-center text-muted">Ready for something delicious?</p>
+              <div class="d-grid gap-2">
+                <a href="<%= user.role === 'admin' ? '/admin' : '/dashboard' %>" class="btn btn-brand-orange btn-lg">
+                  Go to Dashboard <i class="bi bi-arrow-right"></i>
+                </a>
+                <a href="/logout" class="btn btn-outline-secondary">Logout</a>
+              </div>
+            <% } else { %>
+              <h3 class="text-center mb-1">Welcome</h3>
+              <p class="text-center text-muted mb-4">Create your account or log in to continue.</p>
+
+              <!-- tab switch (L13 DOM show/hide) -->
+              <div class="landing-tabs d-flex mb-4">
+                <button type="button" class="landing-tab active" id="tabRegister">
+                  <i class="bi bi-person-plus"></i> Register
+                </button>
+                <button type="button" class="landing-tab" id="tabLogin">
+                  <i class="bi bi-person"></i> Log In
+                </button>
+              </div>
+
+              <!-- register form -->
+              <form method="POST" action="/register" id="registerPane">
+                <div class="input-group mb-3">
+                  <span class="input-group-text bg-white"><i class="bi bi-person"></i></span>
+                  <input type="text" class="form-control" name="name" placeholder="Full Name" required>
+                </div>
+                <div class="input-group mb-3">
+                  <span class="input-group-text bg-white"><i class="bi bi-telephone"></i></span>
+                  <input type="text" class="form-control" name="telephoneNo" placeholder="Phone Number" required>
+                </div>
+                <div class="input-group mb-3">
+                  <span class="input-group-text bg-white"><i class="bi bi-lock"></i></span>
+                  <input type="password" class="form-control" name="password" placeholder="Password" minlength="6" required>
+                </div>
+                <div class="input-group mb-4">
+                  <span class="input-group-text bg-white"><i class="bi bi-lock-fill"></i></span>
+                  <input type="password" class="form-control" name="confirmPassword" placeholder="Confirm Password" minlength="6" required>
+                </div>
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-brand-orange btn-lg">Create Account <i class="bi bi-arrow-right"></i></button>
+                </div>
+                <div class="landing-divider my-3"><span>or</span></div>
+                <div class="d-grid">
+                  <button type="button" class="btn btn-outline-brand-orange" onclick="document.getElementById('tabLogin').click()">
+                    <i class="bi bi-person"></i> Log In
+                  </button>
+                </div>
+              </form>
+
+              <!-- log in form (hidden until the tab is picked) -->
+              <form method="POST" action="/login" id="loginPane" style="display: none;">
+                <div class="input-group mb-3">
+                  <span class="input-group-text bg-white"><i class="bi bi-credit-card"></i></span>
+                  <input type="text" class="form-control" name="card_id" placeholder="Membership Card ID" required>
+                </div>
+                <div class="input-group mb-4">
+                  <span class="input-group-text bg-white"><i class="bi bi-lock"></i></span>
+                  <input type="password" class="form-control" name="password" placeholder="Password" required>
+                </div>
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-brand-orange btn-lg">Log In <i class="bi bi-arrow-right"></i></button>
+                </div>
+                <div class="landing-divider my-3"><span>or</span></div>
+                <div class="d-grid">
+                  <button type="button" class="btn btn-outline-brand-orange" onclick="document.getElementById('tabRegister').click()">
+                    <i class="bi bi-person-plus"></i> Create Account
+                  </button>
+                </div>
+              </form>
+            <% } %>
+          </div>
         </div>
       </div>
     </div>
   </div>
+
+  <% if (!user) { %>
+  <script>
+    // L13 DOM enhancement - switch between the Register and Log In panes
+    const tabRegister = document.getElementById('tabRegister');
+    const tabLogin = document.getElementById('tabLogin');
+    function showPane(register) {
+      document.getElementById('registerPane').style.display = register ? 'block' : 'none';
+      document.getElementById('loginPane').style.display = register ? 'none' : 'block';
+      tabRegister.classList.toggle('active', register);
+      tabLogin.classList.toggle('active', !register);
+    }
+    tabRegister.addEventListener('click', () => showPane(true));
+    tabLogin.addEventListener('click', () => showPane(false));
+  </script>
+  <% } %>
 </body>
 </html>

@@ -512,3 +512,86 @@ form .login-text, form .register-text {
     min-width: 12px;
 }
 .connector-done { background-color: #198754; }
+
+/* ============================================================
+   Done by: Khaing Khant Zaw (Leon)
+   Landing page (TastyBites-style split hero + auth card)
+   ============================================================ */
+.landing-body { background-color: #fdf3e7; }
+
+.landing-title {
+    font-size: 3.2rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+.text-brand-orange { color: #e8862d; }
+
+.btn-brand-orange {
+    background-color: #e8862d;
+    border-color: #e8862d;
+    color: #fff;
+    font-weight: 600;
+}
+.btn-brand-orange:hover { background-color: #d17520; border-color: #d17520; color: #fff; }
+.btn-outline-brand-orange {
+    border: 2px solid #e8862d;
+    color: #e8862d;
+    font-weight: 600;
+}
+.btn-outline-brand-orange:hover { background-color: #fdeeda; color: #d17520; }
+
+/* food photo cluster */
+.landing-food { object-fit: cover; border-radius: 18px; box-shadow: 0 6px 14px rgba(0,0,0,0.15); }
+.landing-food-lg { width: 220px; height: 190px; }
+.landing-food-md { width: 160px; height: 150px; }
+.landing-food-sm { width: 120px; height: 115px; }
+
+/* feature chips under the hero */
+.landing-chip {
+    background: #fff;
+    border-radius: 14px;
+    padding: 0.9rem;
+    display: flex;
+    gap: 0.7rem;
+    align-items: flex-start;
+    height: 100%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* the welcome card and its tabs */
+.landing-card { border: none; border-radius: 18px; }
+.landing-tabs {
+    background: #fdf3e7;
+    border-radius: 12px;
+    padding: 4px;
+}
+.landing-tab {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 0.6rem;
+    border-radius: 10px;
+    font-weight: 600;
+    color: #6c757d;
+}
+.landing-tab.active {
+    background: #fff;
+    color: #e8862d;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+.landing-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: #adb5bd;
+}
+.landing-divider::before, .landing-divider::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid #dee2e6;
+}
+.landing-divider span { padding: 0 0.8rem; }
+
+@media (max-width: 991px) {
+    .landing-title { font-size: 2.3rem; }
+}
