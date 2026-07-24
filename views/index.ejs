@@ -80,20 +80,79 @@
                 <a href="/logout" class="btn btn-outline-secondary">Logout</a>
               </div>
             <% } else { %>
-              <h3 class="text-center mb-1">Welcome</h3>
-              <p class="text-center text-muted mb-4">Create your account or log in to continue.</p>
+              <%# the card swaps between three panes IN PLACE (L13 DOM) -
+                  welcome -> register form or login form, with a back arrow.
+                  The forms still post to the same old /register and /login routes. %>
 
-              <%# same old register and login pages - this card just looks nicer %>
-              <div class="d-grid gap-2">
-                <a href="/register" class="btn btn-brand-orange btn-lg">
-                  <i class="bi bi-person-plus"></i> Create Account <i class="bi bi-arrow-right"></i>
-                </a>
+              <!-- pane 1: welcome -->
+              <div id="welcomePane">
+                <h3 class="text-center mb-1">Welcome</h3>
+                <p class="text-center text-muted mb-4">Create your account or log in to continue.</p>
+                <div class="d-grid gap-2">
+                  <button type="button" class="btn btn-brand-orange btn-lg" id="showRegister">
+                    <i class="bi bi-person-plus"></i> Create Account <i class="bi bi-arrow-right"></i>
+                  </button>
+                </div>
+                <div class="landing-divider my-3"><span>or</span></div>
+                <div class="d-grid">
+                  <button type="button" class="btn btn-outline-brand-orange btn-lg" id="showLogin">
+                    <i class="bi bi-person"></i> Log In
+                  </button>
+                </div>
               </div>
-              <div class="landing-divider my-3"><span>or</span></div>
-              <div class="d-grid">
-                <a href="/login" class="btn btn-outline-brand-orange btn-lg">
-                  <i class="bi bi-person"></i> Log In
-                </a>
+
+              <!-- pane 2: register form (hidden until picked) -->
+              <div id="registerPane" style="display: none;">
+                <div class="d-flex align-items-center mb-3">
+                  <button type="button" class="btn btn-sm btn-outline-secondary back-btn me-2" title="Back">
+                    <i class="bi bi-arrow-left"></i>
+                  </button>
+                  <h4 class="mb-0">Create Account</h4>
+                </div>
+                <form method="POST" action="/register">
+                  <div class="input-group mb-3">
+                    <span class="input-group-text bg-white"><i class="bi bi-person"></i></span>
+                    <input type="text" class="form-control" name="name" placeholder="Full Name" required>
+                  </div>
+                  <div class="input-group mb-3">
+                    <span class="input-group-text bg-white"><i class="bi bi-telephone"></i></span>
+                    <input type="text" class="form-control" name="telephoneNo" placeholder="Phone Number" required>
+                  </div>
+                  <div class="input-group mb-3">
+                    <span class="input-group-text bg-white"><i class="bi bi-lock"></i></span>
+                    <input type="password" class="form-control" name="password" placeholder="Password" minlength="6" required>
+                  </div>
+                  <div class="input-group mb-4">
+                    <span class="input-group-text bg-white"><i class="bi bi-lock-fill"></i></span>
+                    <input type="password" class="form-control" name="confirmPassword" placeholder="Confirm Password" minlength="6" required>
+                  </div>
+                  <div class="d-grid">
+                    <button type="submit" class="btn btn-brand-orange btn-lg">Create Account <i class="bi bi-arrow-right"></i></button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- pane 3: login form (hidden until picked) -->
+              <div id="loginPane" style="display: none;">
+                <div class="d-flex align-items-center mb-3">
+                  <button type="button" class="btn btn-sm btn-outline-secondary back-btn me-2" title="Back">
+                    <i class="bi bi-arrow-left"></i>
+                  </button>
+                  <h4 class="mb-0">Log In</h4>
+                </div>
+                <form method="POST" action="/login">
+                  <div class="input-group mb-3">
+                    <span class="input-group-text bg-white"><i class="bi bi-credit-card"></i></span>
+                    <input type="text" class="form-control" name="card_id" placeholder="Membership Card ID" required>
+                  </div>
+                  <div class="input-group mb-4">
+                    <span class="input-group-text bg-white"><i class="bi bi-lock"></i></span>
+                    <input type="password" class="form-control" name="password" placeholder="Password" required>
+                  </div>
+                  <div class="d-grid">
+                    <button type="submit" class="btn btn-brand-orange btn-lg">Log In <i class="bi bi-arrow-right"></i></button>
+                  </div>
+                </form>
               </div>
             <% } %>
           </div>
@@ -102,5 +161,18 @@
     </div>
   </div>
 
+  <% if (!user) { %>
+  <script>
+    // L13 DOM enhancement - the card changes in place, no page navigation
+    const panes = ['welcomePane', 'registerPane', 'loginPane'];
+    function showPane(id) {
+      panes.forEach(p => document.getElementById(p).style.display = (p === id ? 'block' : 'none'));
+    }
+    document.getElementById('showRegister').addEventListener('click', () => showPane('registerPane'));
+    document.getElementById('showLogin').addEventListener('click', () => showPane('loginPane'));
+    // every back arrow returns to the welcome pane
+    document.querySelectorAll('.back-btn').forEach(b => b.addEventListener('click', () => showPane('welcomePane')));
+  </script>
+  <% } %>
 </body>
 </html>
