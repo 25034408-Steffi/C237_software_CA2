@@ -177,14 +177,7 @@
         <%# Order Status: ONLY the member's current order, big, with the
             progress tracker (modelled on the delivery-app reference) %>
         <% if (activeOrder) { %>
-          <% const online = activeOrder.order_type === 'online';
-             const steps = [
-               { label: 'Order Confirmed', icon: 'bi-check-lg' },
-               { label: 'Preparing',       icon: 'bi-fire' },
-               { label: 'Ready',           icon: online ? 'bi-bag-check' : 'bi-bell' },
-               { label: online ? 'Received' : 'Served', icon: 'bi-emoji-smile' }
-             ];
-             const currentStep = activeOrder.status === 'preparing' ? 1 : 2; %>
+          <% const online = activeOrder.order_type === 'online'; %>
           <div class="card shadow-sm mb-3 order-status-big">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-center mb-3">
@@ -214,25 +207,15 @@
                 </div>
               </div>
 
-              <!-- progress tracker -->
-              <div class="d-flex align-items-start justify-content-between mb-3">
-                <% for (let s = 0; s < steps.length; s++) { %>
-                  <% const done = s < currentStep; const active = s === currentStep; %>
-                  <div class="text-center flex-fill status-step">
-                    <div class="status-circle mx-auto <%= done ? 'step-done' : (active ? 'step-active' : 'step-upcoming') %>">
-                      <i class="bi <%= done ? 'bi-check-lg' : steps[s].icon %>"></i>
-                    </div>
-                    <small class="d-block mt-1 <%= active ? 'text-danger fw-bold' : (done ? '' : 'text-muted') %>"><%= steps[s].label %></small>
-                    <% if (s === 0) { %>
-                      <small class="text-muted"><%= activeOrder.created_at.toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit' }) %></small>
-                    <% } else if (!done && !active) { %>
-                      <small class="text-muted">Upcoming</small>
-                    <% } %>
-                  </div>
-                  <% if (s < steps.length - 1) { %>
-                    <div class="status-connector <%= s < currentStep ? 'connector-done' : '' %>"></div>
-                  <% } %>
-                <% } %>
+              <%# simple status line instead of a step tracker - we don't
+                  track the kitchen in real time %>
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="badge fs-6 <%= activeOrder.status === 'ready' ? 'bg-primary' : 'bg-warning text-dark' %>">
+                  <%= activeOrder.status === 'ready' ? 'Ready' : 'Preparing' %>
+                </span>
+                <small class="text-muted">
+                  Ordered at <%= activeOrder.created_at.toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit' }) %>
+                </small>
               </div>
 
               <div class="alert alert-warning py-2 px-3 small mb-3">
