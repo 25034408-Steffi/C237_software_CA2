@@ -1,3 +1,4 @@
+require('dotenv').config(); // load .env locally; Render supplies real env vars
 const express = require('express');
 const session = require('express-session');
 const flash = require('connect-flash');
@@ -48,7 +49,7 @@ const upload = multer({ storage: storage });
 
 // Session middleware
 app.use(session({
-    secret: 'notsasecret',
+    secret: process.env.SESSION_SECRET || 'notsasecret',
     resave: false,
     saveUninitialized: true,
     // cookie lasts for 24 hours
@@ -1115,7 +1116,7 @@ app.get('/logout', (req, res) => {
     res.redirect('/');
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000; // Render assigns its own port
 app.listen(PORT, () => {
     console.log(`Server started on port http://localhost:${PORT}`);
 });
