@@ -22,6 +22,11 @@ INSERT INTO `c237_026_team5_ca2`.`user` (`user_id`, `card_id`, `name`, `phone_nu
 INSERT INTO `c237_026_team5_ca2`.`user` (`user_id`, `card_id`, `name`, `phone_number`, `password`, `role`, `points`, `primary_user_id`, `relationship_type_id`) VALUES
 (4, 'J091201', 'Lily Tan', '12345678', 'd98cb42bb148541314ea1911af3c28a1fa4a6233', 'customer', 0, 2, 1); -- lilypassword
 
+-- sample membership card tiers
+UPDATE `user` SET `card_tier` = 'gold' WHERE `card_id` = 'J091200';
+UPDATE `user` SET `card_tier` = 'vip' WHERE `card_id` = 'M098700';
+UPDATE `user` SET `card_tier` = 'silver' WHERE `card_id` = 'J091201';
+
 
 -- -----------------------------------------------------
 -- Categories
@@ -104,11 +109,23 @@ INSERT INTO `c237_026_team5_ca2`.`menu_item`
 (29, 6, 'Cheesecake', 'cheesecake.jpg', 'Rich baked cheesecake with a buttery biscuit base.', 7.50, 1);
 
 -- -----------------------------------------------------
--- Sizes (used for Pizza)
+-- Sizes (used for Pizza and Drinks)
 -- -----------------------------------------------------
 INSERT INTO `c237_026_team5_ca2`.`size` (`size_id`, `name`) VALUES
 (1, 'Small (12 inches)'),
-(2, 'Regular (16 inches)');
+(2, 'Regular (16 inches)'),
+(3, 'Small (drink)'),
+(4, 'Large (drink)');
+
+-- -----------------------------------------------------
+-- Redeemable menu items (points_cost)
+-- -----------------------------------------------------
+UPDATE `menu_item` SET `points_cost` = 300 WHERE `name` = 'Coca-Cola';
+UPDATE `menu_item` SET `points_cost` = 350 WHERE `name` = 'Iced Lemon Tea';
+UPDATE `menu_item` SET `points_cost` = 550 WHERE `name` = 'Mango Smoothie';
+UPDATE `menu_item` SET `points_cost` = 750 WHERE `name` = 'Cheesecake';
+UPDATE `menu_item` SET `points_cost` = 800 WHERE `name` = 'Tiramisu';
+UPDATE `menu_item` SET `points_cost` = 900 WHERE `name` = 'Chocolate Lava Cake';
 
 -- -----------------------------------------------------
 -- menu_item_has_size: Pizza sizing
@@ -125,10 +142,10 @@ INSERT INTO `c237_026_team5_ca2`.`menu_item_has_size` (`menu_item_id`, `size_id`
 -- All $2 except meat (Pork/Chicken Sausages) at $4
 -- -----------------------------------------------------
 INSERT INTO `c237_026_team5_ca2`.`add_on` (`add_on_id`, `name`, `price`) VALUES
-(1, 'Anchovies', 2.00),
-(2, 'Pork/Chicken Sausages', 4.00),
+(1, 'Anchovies', 1.00),
+(2, 'Pork/Chicken Sausages', 3.00),
 (3, 'Olives', 2.00),
-(4, 'Spinach', 2.00),
+(4, 'Spinach', 1.00),
 (5, 'Pineapple', 2.00);
 
 -- -----------------------------------------------------
@@ -203,4 +220,45 @@ INSERT INTO `c237_026_team5_ca2`.`favourite` (`user_id`, `menu_item_id`) VALUES
 (3, 22),  -- Mary Lim: Salsiccia Pizza
 (4, 27),  -- Lily Tan: Tiramisu
 (4, 25);  -- Lily Tan: Mango Smoothie
+
+-- -----------------------------------------------------
+-- Ratings (with review comments)
+-- -----------------------------------------------------
+INSERT INTO `rating` (`user_id`, `menu_item_id`, `stars`, `comment`) VALUES
+(2, 3, 5, 'Broth was rich and the prawns were fresh!'),  -- John Tan: Laksa
+(3, 3, 4, 'Good spice level, would order again.'),        -- Mary Lim: Laksa
+(4, 3, 5, NULL),   -- Lily Tan: Laksa
+(2, 1, 4, NULL),   -- John Tan: Seafood Hokkien Mee
+(3, 19, 5, NULL),  -- Mary Lim: Hawaiian Pizza
+(2, 27, 5, NULL);  -- John Tan: Tiramisu
+
+-- -----------------------------------------------------
+-- Complaints
+-- -----------------------------------------------------
+INSERT INTO `complaint` (`user_id`, `topic`, `message`) VALUES
+(2, 'food', 'The laksa was lukewarm when it arrived at the table.'),
+(3, 'staff', 'Service was slow during Saturday dinner, we waited 20 minutes to order.');
+
+-- -----------------------------------------------------
+-- Sample orders showing the admin order-lifecycle states
+-- (order_id/order_item_id continue from the orders above via AUTO_INCREMENT)
+-- -----------------------------------------------------
+INSERT INTO `c237_026_team5_ca2`.`order` (`user_id`, `total`, `points_earned`, `points_redeemed`, `discount_amount`, `status`, `order_type`, `impatient`, `created_at`) VALUES
+(2, 44.00, 44, NULL, NULL, 'received',  'online',        0, '2026-07-18 12:31:00'),  -- order_id 4
+(3, 29.00, 29, NULL, NULL, 'finished',  'in_restaurant', 0, '2026-07-19 19:05:00'),  -- order_id 5
+(2, 26.00, 26, NULL, NULL, 'preparing', 'online',        0, '2026-07-21 18:22:00'),  -- order_id 6
+(4, 15.00, 15, NULL, NULL, 'ready',     'online',        0, '2026-07-22 13:05:00');  -- order_id 7
+
+INSERT INTO `c237_026_team5_ca2`.`order_item` (`order_id`, `menu_item_id`, `size_id`, `quantity`) VALUES
+(4, 1, NULL, 1), (4, 3, NULL, 1), (4, 5, NULL, 1),
+(5, 6, NULL, 1), (5, 7, NULL, 1), (5, 10, NULL, 0),
+(6, 2, NULL, 1), (6, 8, NULL, 1),
+(7, 2, NULL, 1);
+
+-- -----------------------------------------------------
+-- Reservations: two pending requests + one accepted upcoming booking
+-- -----------------------------------------------------
+INSERT INTO `reservation` (`user_id`, `reserve_date`, `reserve_time`, `pax`, `table_number`, `status`) VALUES
+(3, '2026-07-23', '19:00:00', 4, NULL, 'pending'),
+(2, '2026-07-23', '18:30:00', 6, 12, 'upcoming');
 
